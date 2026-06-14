@@ -24,11 +24,6 @@ Football is high-variance and a single tournament is a tiny sample; the goal is 
 *well-calibrated, leakage-free* forecasting system that is honest about what it
 knows and what it doesn't.
 
-> **For recruiters:** the [Highlights](#highlights) and [Evaluation](#evaluation)
-> sections are the 60-second version. **For engineers:** start at
-> [How it works](#how-it-works-architecture) and the
-> [no-leakage doctrine](#no-leakage-the-core-engineering-constraint).
-
 ---
 
 ## Highlights
@@ -424,9 +419,3 @@ reports/               # generated metrics JSON, figures, and Markdown reports
 tests/                 # 251-test pytest suite (incl. a leakage test per feature)
 data/{raw,interim,processed}/   # gitignored; datasets are downloaded locally
 ```
-
-## License
-
-[MIT](LICENSE) © Colby Threlkeld. Match data is from the
-[martj42/international_results](https://github.com/martj42/international_results)
-dataset under its own license.
