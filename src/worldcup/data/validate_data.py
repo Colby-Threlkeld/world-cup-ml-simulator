@@ -182,6 +182,35 @@ def validate_no_future_ratings(
         )
 
 
+def validate_rating_features(
+    df: pd.DataFrame,
+    rating_date_cols: Sequence[str],
+    *,
+    match_date_col: str = "date",
+) -> None:
+    """Ensure every joined rating snapshot is dated at or before its match.
+
+    Convenience wrapper that runs :func:`validate_no_future_ratings` for each
+    rating-date column produced by an as-of join (e.g. one per side per source),
+    so a single call guards the whole rating-feature block against leakage.
+    A ``NaT`` rating date (no prior rating available) is treated as missing, not
+    as leakage.
+
+    Args:
+        df: Frame with the joined rating snapshot dates and the match date.
+        rating_date_cols: The rating effective-date columns to check.
+        match_date_col: Column holding the match (kickoff) date.
+
+    Raises:
+        DataValidationError: If a referenced column is missing.
+        LeakageError: If any rating date is strictly after its match date.
+    """
+    for col in rating_date_cols:
+        validate_no_future_ratings(
+            df, rating_date_col=col, match_date_col=match_date_col
+        )
+
+
 def validate_probabilities(
     df: pd.DataFrame,
     columns: Sequence[str],

@@ -22,6 +22,7 @@ from worldcup.data.clean_data import (
     TEAM_A_RESULTS,
 )
 from worldcup.data.validate_data import DataValidationError
+from worldcup.features.rating_features import add_rating_features
 from worldcup.features.rolling_features import add_rolling_features
 
 # Column order of the Team A vs Team B model dataset.
@@ -110,22 +111,36 @@ def build_model_dataset(matches: pd.DataFrame) -> pd.DataFrame:
     return out.loc[:, list(MODEL_DATASET_COLUMNS)]
 
 
-def build_feature_matrix(matches: pd.DataFrame) -> pd.DataFrame:
+def build_feature_matrix(
+    matches: pd.DataFrame,
+    *,
+    elo_ratings: pd.DataFrame | None = None,
+    fifa_rankings: pd.DataFrame | None = None,
+) -> pd.DataFrame:
     """Build the leakage-safe, model-ready feature matrix from cleaned matches.
 
     Reshapes to the Team A vs Team B model dataset, then attaches leakage-safe
     rolling team-form features (as-of the match date) for both sides plus their
-    difference features. Elo and FIFA-ranking features arrive in later slices.
+    difference features. When ``elo_ratings`` and/or ``fifa_rankings`` are given,
+    their as-of rating features are joined on top (see
+    :func:`worldcup.features.rating_features.add_rating_features`).
 
     Args:
         matches: Cleaned matches table from
             :func:`worldcup.data.clean_data.clean_matches`.
+        elo_ratings: Optional Elo ratings to attach (``team``, ``date``, ``elo``).
+        fifa_rankings: Optional FIFA rankings to attach (``team``, ``rank_date``,
+            ``rank``, ``points``).
 
     Returns:
         One row per match: the model dataset + rolling features (``*_a``/``*_b``)
-        + difference features, with no post-kickoff information.
+        + difference features (+ rating features when ratings are supplied), with
+        no post-kickoff information.
     """
-    return add_rolling_features(build_model_dataset(matches))
+    feats = add_rolling_features(build_model_dataset(matches))
+    if elo_ratings is not None or fifa_rankings is not None:
+        feats = add_rating_features(feats, elo_ratings, fifa_rankings)
+    return feats
 
 
 def _host_country(matches: pd.DataFrame) -> object:
