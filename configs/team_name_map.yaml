@@ -1,23 +1,52 @@
-# Maps alternate / historical team names to a single canonical name, so the same
+# Maps alternate / historical team names to a single CANONICAL name, so the same
 # nation does not split across rows when joining sources (results.csv vs FIFA
-# rankings vs Elo). Canonical form is the left-hand value.
+# ranking vs Elo). Canonical form = the spelling used in results.csv (martj42),
+# which is already clean English. Consumed by worldcup.data.team_names.
 #
-# Consumed by worldcup.data.team_names.load_team_name_map.
+# Matching is case-, accent-, and apostrophe-insensitive, so "Côte d'Ivoire",
+# "Côte d’Ivoire", and "cote d'ivoire" all resolve through one entry below.
+#
+# DELIBERATELY NOT MAPPED:
+#   * UK Home Nations — England, Scotland, Wales, Northern Ireland — are SEPARATE
+#     teams. "Great Britain" / "United Kingdom" are not mapped to any of them.
+#   * Defunct sides (Yugoslavia, Czechoslovakia, German DR, Soviet Union, Serbia
+#     and Montenegro) are kept distinct from their successor nations.
 
 aliases:
+  # --- North & Central America ---
   "USA": "United States"
+  "United States of America": "United States"
+
+  # --- Europe ---
+  "Czechia": "Czech Republic"
+  "Türkiye": "Turkey"
+  "Turkiye": "Turkey"
+  "Holland": "Netherlands"
+  "Ireland": "Republic of Ireland"        # results.csv canonical is "Republic of Ireland"
+  "Eire": "Republic of Ireland"
+  "Bosnia-Herzegovina": "Bosnia and Herzegovina"
+  "Bosnia & Herzegovina": "Bosnia and Herzegovina"
+  "Bosnia": "Bosnia and Herzegovina"
+  "Macedonia": "North Macedonia"
+  "FYR Macedonia": "North Macedonia"
+
+  # --- Asia ---
   "Korea Republic": "South Korea"
+  "Republic of Korea": "South Korea"
   "Korea DPR": "North Korea"
+  "Korea, DPR": "North Korea"
   "IR Iran": "Iran"
   "China PR": "China"
-  "Cote d'Ivoire": "Ivory Coast"
-  "Côte d'Ivoire": "Ivory Coast"
-  "Czechia": "Czech Republic"
-  "Turkiye": "Turkey"
-  "Türkiye": "Turkey"
-  "Cape Verde Islands": "Cape Verde"
-  # results.csv uses "Republic of Ireland" as canonical; map the short form to it.
-  "Ireland": "Republic of Ireland"
+  "Saudi": "Saudi Arabia"
 
-# TODO(slice 1): expand as the data audit (notebook 01) surfaces real mismatches
-# between the results dataset and the FIFA ranking / Elo datasets.
+  # --- Africa ---
+  "Côte d'Ivoire": "Ivory Coast"
+  "Cote d'Ivoire": "Ivory Coast"
+  "Congo DR": "DR Congo"
+  "Democratic Republic of the Congo": "DR Congo"
+  "Cape Verde Islands": "Cape Verde"
+  "Cabo Verde": "Cape Verde"
+  "Swaziland": "Eswatini"
+
+# TODO(V1.1): expand when the FIFA ranking dataset is added — run
+# `find_unknown_teams` against the results.csv canonical set to surface gaps.
