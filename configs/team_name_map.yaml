@@ -1,0 +1,23 @@
+# Maps alternate / historical team names to a single canonical name, so the same
+# nation does not split across rows when joining sources (results.csv vs FIFA
+# rankings vs Elo). Canonical form is the left-hand value.
+#
+# Consumed by worldcup.data.team_names.load_team_name_map.
+
+aliases:
+  "USA": "United States"
+  "Korea Republic": "South Korea"
+  "Korea DPR": "North Korea"
+  "IR Iran": "Iran"
+  "China PR": "China"
+  "Cote d'Ivoire": "Ivory Coast"
+  "Côte d'Ivoire": "Ivory Coast"
+  "Czechia": "Czech Republic"
+  "Turkiye": "Turkey"
+  "Türkiye": "Turkey"
+  "Cape Verde Islands": "Cape Verde"
+  # results.csv uses "Republic of Ireland" as canonical; map the short form to it.
+  "Ireland": "Republic of Ireland"
+
+# TODO(slice 1): expand as the data audit (notebook 01) surfaces real mismatches
+# between the results dataset and the FIFA ranking / Elo datasets.

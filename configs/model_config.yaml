@@ -1,0 +1,23 @@
+# Model + simulation hyperparameters. Loaded by worldcup.config.model_config.
+# Values here are sensible defaults / placeholders; they are tuned in slices 2-6.
+
+random_seed: 42
+
+# Slice 2 -- Elo baseline.
+elo:
+  initial_rating: 1500
+  k_factor: 32
+  home_advantage: 65   # rating points; set to 0 for neutral-venue matches.
+
+# Slice 4 -- Poisson goals model.
+poisson:
+  max_goals: 10        # truncate the scoreline grid at this many goals per team.
+  # TODO(slice 4): regularization, feature list, train window.
+
+# Slice 5 -- probability calibration.
+calibration:
+  method: isotonic     # "isotonic" or "sigmoid" (Platt).
+
+# Slice 6 -- Monte Carlo tournament simulation.
+simulation:
+  n_simulations: 10000

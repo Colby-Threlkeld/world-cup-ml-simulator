@@ -1,0 +1,35 @@
+# 2026 FIFA World Cup format (USA / Canada / Mexico).
+# Structural facts only -- NO predictions and NO unconfirmed group draws.
+
+format:
+  total_teams: 48
+  num_groups: 12
+  teams_per_group: 4
+  # Advancement: top two of each group (24) + the 8 best third-placed teams = 32.
+  advance_per_group: 2
+  best_third_placed_advance: 8
+  knockout_rounds:
+    - round_of_32
+    - round_of_16
+    - quarter_final
+    - semi_final
+    - final
+
+hosts:
+  - United States
+  - Canada
+  - Mexico
+
+# TODO(slice 6): fill in the 12 groups once the official draw is known.
+# Until then the simulator must treat groups as a configurable input, not a
+# hardcoded guess. Placeholder structure shown for one group:
+groups: {}
+#   A:
+#     - <team>
+#     - <team>
+#     - <team>
+#     - <team>
+
+# TODO(slice 1+): qualified teams as confirmed by FIFA. Hosts qualify
+# automatically; all others via confederation qualifiers.
+qualified_teams: []
