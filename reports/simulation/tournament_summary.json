@@ -1,0 +1,50 @@
+{
+  "n_simulations": 1000,
+  "seed": 42,
+  "runtime_seconds": 3.52,
+  "n_teams": 48,
+  "draw_status": "placeholder",
+  "title_probability_total": 1.0,
+  "top_title_contenders": [
+    {
+      "team": "H1",
+      "win_world_cup_probability": 0.031
+    },
+    {
+      "team": "I3",
+      "win_world_cup_probability": 0.03
+    },
+    {
+      "team": "K1",
+      "win_world_cup_probability": 0.03
+    },
+    {
+      "team": "J4",
+      "win_world_cup_probability": 0.028
+    },
+    {
+      "team": "C4",
+      "win_world_cup_probability": 0.026
+    },
+    {
+      "team": "H2",
+      "win_world_cup_probability": 0.026
+    },
+    {
+      "team": "I4",
+      "win_world_cup_probability": 0.026
+    },
+    {
+      "team": "C1",
+      "win_world_cup_probability": 0.025
+    },
+    {
+      "team": "E3",
+      "win_world_cup_probability": 0.025
+    },
+    {
+      "team": "J1",
+      "win_world_cup_probability": 0.025
+    }
+  ]
+}

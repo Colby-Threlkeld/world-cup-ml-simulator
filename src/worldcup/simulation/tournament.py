@@ -15,15 +15,28 @@ rather than asserting an unverified bracket.
 
 from __future__ import annotations
 
+import functools
+import logging
+import time
 from collections import Counter
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
-from worldcup.config import CONFIGS_DIR, load_yaml
+from worldcup.config import CONFIGS_DIR, RANDOM_SEED, load_yaml
+from worldcup.simulation.group_stage import (
+    PredictFn,
+    build_group_table,
+    select_best_third_place_teams,
+)
+from worldcup.simulation.knockout import CHAMPION_KEY, simulate_bracket
+from worldcup.simulation.tiebreakers import rank_group
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_TOURNAMENT_CONFIG_PATH = CONFIGS_DIR / "tournament_2026.yaml"
 
@@ -351,19 +364,223 @@ def _seed_placeholder(
     return ordered
 
 
-def simulate_tournament(n_simulations: int = 10_000) -> pd.DataFrame:
-    """Run the full 2026 World Cup Monte Carlo.
+# --- Monte Carlo simulation -------------------------------------------------
 
-    TODO(slice 6): for each of ``n_simulations`` runs -- draw group results from
-    the match model, compute standings and qualifiers (top two per group plus
-    the eight best third-placed teams), then play the round of 32 through the
-    final via :func:`worldcup.simulation.knockout.resolve_knockout`. Aggregate
-    per-team advancement and title probabilities across all runs.
+WIN_GROUP_KEY = "win_group"
+
+# Tally key -> output probability column. The knockout keys match
+# worldcup.simulation.knockout.ADVANCEMENT_ROUNDS; ``win_group`` is tallied here.
+_TALLY_TO_COLUMN: dict[str, str] = {
+    WIN_GROUP_KEY: "win_group_probability",
+    "reach_round_32": "reach_round_32_probability",
+    "reach_round_16": "reach_round_16_probability",
+    "reach_quarterfinal": "reach_quarterfinal_probability",
+    "reach_semifinal": "reach_semifinal_probability",
+    "reach_final": "reach_final_probability",
+    CHAMPION_KEY: "win_world_cup_probability",
+}
+
+#: Output probability columns, outermost stage first.
+PROBABILITY_COLUMNS: tuple[str, ...] = tuple(_TALLY_TO_COLUMN.values())
+
+
+def uniform_predict_fn() -> PredictFn:
+    """A predictor that knows nothing: every match is 1/3 win / 1/3 draw / 1/3 win.
+
+    The honest default for the placeholder draw — all slots are interchangeable, so
+    the result reflects bracket structure only, not a team-specific forecast.
+    """
+    third = 1.0 / 3.0
+    return lambda team_a, team_b: (third, third, third)
+
+
+def strength_predict_fn(
+    strengths: Mapping[str, float],
+    *,
+    draw_rate: float = 0.22,
+    scale: float = 100.0,
+) -> PredictFn:
+    """Build a :data:`PredictFn` from per-team strength ratings (e.g. Elo).
+
+    The decisive-result split is a logistic on the strength difference; the draw
+    probability is a fixed ``draw_rate``. Teams absent from ``strengths`` get a
+    neutral 0, so unknown/placeholder slots are treated as average.
 
     Args:
-        n_simulations: Number of independent tournaments to simulate.
+        strengths: Team name -> strength rating (higher = stronger).
+        draw_rate: Fixed draw probability (international base rate ~0.22).
+        scale: Rating points for a 10x odds swing (Elo-like; larger = flatter).
 
     Returns:
-        One row per team with advancement and title probabilities.
+        ``predict(team_a, team_b) -> (p_a_win, p_draw, p_b_win)``.
+
+    Raises:
+        ValueError: If ``draw_rate`` is not in ``[0, 1)``.
     """
-    raise NotImplementedError("simulate_tournament is implemented in slice 6.")
+    if not 0.0 <= draw_rate < 1.0:
+        raise ValueError(f"draw_rate must be in [0, 1), got {draw_rate}")
+    decisive = 1.0 - draw_rate
+
+    def predict(team_a: str, team_b: str) -> tuple[float, float, float]:
+        diff = strengths.get(team_a, 0.0) - strengths.get(team_b, 0.0)
+        # Clamp the exponent so an extreme strength gap saturates to ~0/1 instead
+        # of overflowing 10 ** huge.
+        exponent = min(50.0, max(-50.0, -diff / scale))
+        p_a_decisive = 1.0 / (1.0 + 10.0**exponent)
+        return (decisive * p_a_decisive, draw_rate, decisive * (1.0 - p_a_decisive))
+
+    return predict
+
+
+def simulate_tournament(
+    config: TournamentConfig,
+    predict: PredictFn,
+    *,
+    n_simulations: int = 10_000,
+    seed: int = RANDOM_SEED,
+) -> pd.DataFrame:
+    """Run the full 2026 World Cup Monte Carlo and estimate per-team probabilities.
+
+    Each simulation plays all 12 groups (round robin -> standings -> top two plus
+    the eight best thirds), seeds the round of 32 (see
+    :func:`build_knockout_seeding`), and plays the bracket to a champion. Per-team
+    advancement is accumulated as **counts** — no per-run state is stored — so
+    memory stays tiny on a small CPU VM. All randomness flows through one seeded
+    numpy generator, so a seed fully reproduces a run.
+
+    The model is **not** retrained here: ``predict`` is a prediction function
+    (e.g. wrapping a cached model or rating table) and is memoized internally, so a
+    costly model is queried at most once per unique pairing.
+
+    Args:
+        config: Validated tournament configuration.
+        predict: ``(team_a, team_b) -> (p_a_win, p_draw, p_b_win)``.
+        n_simulations: Independent tournaments to run (1,000 quick / 10,000+ full).
+        seed: Seed for the single numpy ``Generator``.
+
+    Returns:
+        One row per team with columns ``team`` + :data:`PROBABILITY_COLUMNS`,
+        sorted by title probability (descending).
+
+    Raises:
+        ValueError: If ``n_simulations`` is not positive.
+    """
+    if n_simulations <= 0:
+        raise ValueError(f"n_simulations must be positive, got {n_simulations}")
+
+    tally: dict[str, dict[str, int]] = {
+        team: dict.fromkeys(_TALLY_TO_COLUMN, 0) for team in config.teams()
+    }
+    cached_predict = _memoize_predict(predict)
+    rng = np.random.default_rng(seed)
+
+    fixtures_by_group: dict[str, list[GroupFixture]] = {}
+    for fixture in config.fixtures:
+        fixtures_by_group.setdefault(fixture.group, []).append(fixture)
+
+    start = time.perf_counter()
+    for _ in range(n_simulations):
+        _simulate_one_tournament(config, fixtures_by_group, cached_predict, rng, tally)
+    logger.info("Simulated %d tournaments in %.2fs", n_simulations, time.perf_counter() - start)
+
+    return _tally_to_probabilities(tally, n_simulations)
+
+
+def summarize_simulation(
+    probabilities: pd.DataFrame,
+    *,
+    n_simulations: int,
+    seed: int,
+    runtime_seconds: float,
+    draw_status: str,
+    top_n: int = 10,
+) -> dict[str, Any]:
+    """Build a JSON-serializable summary of a simulation run.
+
+    Args:
+        probabilities: Output of :func:`simulate_tournament`.
+        n_simulations: Number of simulations run.
+        seed: Seed used.
+        runtime_seconds: Wall-clock runtime.
+        draw_status: ``config.draw_status`` — recorded so a placeholder run is never
+            mistaken for a real forecast.
+        top_n: How many title contenders to list.
+
+    Returns:
+        A dictionary suitable for ``json.dump``.
+    """
+    top = probabilities.nlargest(top_n, "win_world_cup_probability")
+    return {
+        "n_simulations": int(n_simulations),
+        "seed": int(seed),
+        "runtime_seconds": round(float(runtime_seconds), 3),
+        "n_teams": int(len(probabilities)),
+        "draw_status": draw_status,
+        "title_probability_total": round(float(probabilities["win_world_cup_probability"].sum()), 6),
+        "top_title_contenders": [
+            {"team": str(team), "win_world_cup_probability": round(float(prob), 4)}
+            for team, prob in zip(top["team"], top["win_world_cup_probability"], strict=True)
+        ],
+    }
+
+
+# --- internal simulation helpers --------------------------------------------
+
+
+def _simulate_one_tournament(
+    config: TournamentConfig,
+    fixtures_by_group: Mapping[str, Sequence[GroupFixture]],
+    predict: PredictFn,
+    rng: np.random.Generator,
+    tally: dict[str, dict[str, int]],
+) -> None:
+    """Play one full tournament and update ``tally`` in place."""
+    group_winners: list[str] = []
+    runners_up: list[str] = []
+    third_placed = []
+    for name, group_teams in config.groups.items():
+        standings = build_group_table(group_teams, fixtures_by_group.get(name, ()), predict, rng)
+        ranked = rank_group(standings, rng)
+        group_winners.append(ranked[0].team)
+        runners_up.append(ranked[1].team)
+        third_placed.append(ranked[2])
+        tally[ranked[0].team][WIN_GROUP_KEY] += 1
+
+    best_thirds = [
+        standing.team
+        for standing in select_best_third_place_teams(
+            third_placed, rng, n=config.best_third_placed_advance
+        )
+    ]
+    seeding = build_knockout_seeding(config, group_winners, runners_up, best_thirds)
+    result = simulate_bracket(seeding, predict, rng)
+
+    for key, reached in result.advancement.items():
+        if key == CHAMPION_KEY:
+            continue
+        for team in reached:
+            tally[team][key] += 1
+    tally[result.champion][CHAMPION_KEY] += 1
+
+
+def _memoize_predict(predict: PredictFn) -> PredictFn:
+    """Wrap a predictor in an unbounded cache (probabilities are fixed per pairing)."""
+
+    @functools.lru_cache(maxsize=None)
+    def cached(team_a: str, team_b: str) -> tuple[float, ...]:
+        return tuple(float(p) for p in predict(team_a, team_b))
+
+    return cached
+
+
+def _tally_to_probabilities(tally: Mapping[str, Mapping[str, int]], n: int) -> pd.DataFrame:
+    """Convert per-team counts to probabilities, sorted by title probability."""
+    rows = [
+        {"team": team, **{col: counts[key] / n for key, col in _TALLY_TO_COLUMN.items()}}
+        for team, counts in tally.items()
+    ]
+    return (
+        pd.DataFrame(rows, columns=["team", *PROBABILITY_COLUMNS])
+        .sort_values(["win_world_cup_probability", "team"], ascending=[False, True])
+        .reset_index(drop=True)
+    )

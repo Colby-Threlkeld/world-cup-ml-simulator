@@ -14,8 +14,10 @@ in an interview.
 - ✅ **Slice 0** — scaffold + tooling. Data audited; V1 schema agreed (see below). `data/raw/` holds martj42 CSVs (gitignored).
 - ✅ **Slice 1** — ingestion: `load_raw_matches` + `clean_matches` → `data/interim/matches.parquet` (49,409 played rows; 68 unplayed 2026 fixtures split out). `scripts/build_matches.py` CLI. Team-name normalization + strong aggregating validation layer (`check_matches`, `LeakageError`, prob/ratings validators).
 - ✅ **Model dataset + features** — `build_model_dataset` (Team A vs Team B) and `build_feature_matrix` (leakage-safe rolling form: last-5/10 points/goals-for/against/goal-diff, days_since_last_match, matches_played_last_365_days, + 6 diff features). Builds in ~0.8s.
-- ⬜ **Slice 2 (next)** — temporal Elo baseline + walk-forward backtest (Brier / log loss); add as a feature and as the number to beat.
-- All work uncommitted on branch `main`. Suite: **102 tests** green (`python -m pytest -q`).
+- ✅ **Ratings + models + evaluation** — Elo + as-of FIFA/rating features (`rating_features`), baseline forecasters and a calibrated 3-class main model (`models/`), walk-forward evaluation with metrics + plots in `reports/`. Scripts: `train_baselines.py`, `train_model.py`, `generate_evaluation_report.py`.
+- ✅ **Slice 6 — Monte Carlo simulator** — `simulate_tournament(config, predict, n, seed)` + `scripts/run_simulation.py` (quick/full, CSV + JSON, seeded, memoized predict). Group→knockout building blocks in `simulation/`.
+- ⬜ **Next** — slice 7 reporting/Streamlit app; wire a real per-team `predict` (trained model or Elo strengths) once the official draw replaces the placeholder slots.
+- All work on branch `main`. Suite: **223 tests** green (`python -m pytest -q`).
 - Build order: 0 scaffold · 1 ingest · 2 Elo baseline+backtest · 3 features · 4 Poisson model · 5 calibration · 6 Monte Carlo sim · 7 reporting/app.
 
 ## Operating rules (non-negotiable)
