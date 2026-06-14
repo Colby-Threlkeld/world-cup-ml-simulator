@@ -242,10 +242,10 @@ memory. One numpy `Generator` from seed `42` makes a whole run reproducible.
 
 ## Streamlit dashboard
 
-`make app` launches a six-page, **read-only** dashboard. It never trains a model —
-it loads saved pipeline artifacts and computes only a cheap cached Elo table; any
-page whose artifact is missing shows the exact command to generate it (no
-fabricated numbers).
+Launch a six-page, **read-only** dashboard with `streamlit run app/streamlit_app.py`.
+It never trains a model — it loads saved pipeline artifacts and computes only a
+cheap cached Elo table; any page whose artifact is missing shows the exact command
+to generate it (no fabricated numbers).
 
 | Page | What it shows |
 |------|----------------|
@@ -272,47 +272,60 @@ _Add images to `docs/screenshots/` and they'll appear here._
 
 ## Setup
 
-Requires **Python 3.11+** (the dev interpreter is pinned to 3.12) and, ideally,
-[`uv`](https://docs.astral.sh/uv/).
+Requires **Python 3.11+** (the dev interpreter is pinned to 3.12). Any
+conda/system Python works — there is no build step and `pythonpath = src` is
+preconfigured, so no editable install is strictly required to run the tests.
 
 ```bash
-# With uv (recommended):
-make install       # full dev env: pipeline + tests + lint + the Streamlit app
-make install-min   # lean compute-only env (no Streamlit/dev tools) for a VM
+# Full dev environment: pipeline + tests + lint + the Streamlit dashboard.
+python -m pip install -e ".[dev]"
 
-# Without uv (any existing conda/system Python ≥ 3.11):
-python -m pip install -e ".[dev]"   # or `-e .` for the lean install, `.[app]` for the dashboard
-python -m pytest                    # pythonpath=src is preconfigured — no extra setup
+# Or pick a lighter install:
+python -m pip install -e .          # lean compute-only (no Streamlit, no dev tools)
+python -m pip install -e ".[app]"   # pipeline + the dashboard, without dev tools
+
+python -m pytest                    # verify the install (251 tests, fixture data only)
 ```
+
+> [`uv`](https://docs.astral.sh/uv/) is optional but faster: swap `python -m pip
+> install` for `uv pip install` (after `uv venv`), and prefix any command with
+> `uv run` (e.g. `uv run pytest`). On Windows, `make` is **not** required — every
+> command below is a plain `python`/`streamlit` invocation.
 
 Then drop the martj42 CSVs into `data/raw/` (`results.csv`, `shootouts.csv`,
 `goalscorers.csv`).
 
 ## Example commands
 
-The pipeline runs in stages; each logs its runtime, and `build-features` caches its
-output (skips the rebuild when nothing upstream changed; `--force` to override).
+The pipeline runs in stages; each logs its runtime, and the feature build caches
+its output (skips the rebuild when nothing upstream changed; `--force` to override).
 
 ```bash
-make build-data        # clean raw results        -> data/interim/matches.parquet
-make build-features    # leakage-safe feature table (attaches walk-forward Elo)
-make train-baselines   # fit + score the baselines -> reports/baseline_metrics.json
-make train-model       # calibrated match model    -> data/processed/model/ + metrics
-make evaluate          # evaluation report + figures -> reports/
-make backtest          # backtest 2014 / 2018 / 2022 -> reports/backtesting/
-make simulate-quick    # Monte Carlo, 1,000 sims (~3.5s) -> reports/simulation/
-make simulate-full     # Monte Carlo, 10,000 sims
-make app               # launch the Streamlit dashboard
-
-# Shortcuts:
-make pipeline-quick    # whole chain on small samples (fast end-to-end smoke)
-make pipeline-full     # whole chain at full size
-make check             # the CI gate: ruff + black --check + pytest
+python scripts/build_matches.py                                    # clean raw results -> data/interim/matches.parquet
+python scripts/build_features.py --matches data/interim/matches.parquet  # leakage-safe feature table (+ walk-forward Elo)
+python scripts/train_baselines.py                                  # fit + score baselines -> reports/baseline_metrics.json
+python scripts/train_model.py                                      # calibrated match model -> data/processed/model/ + metrics
+python scripts/generate_evaluation_report.py                       # evaluation report + figures -> reports/
+python scripts/run_backtest.py                                     # backtest 2014 / 2018 / 2022 -> reports/backtesting/
+python scripts/run_simulation.py --quick                           # Monte Carlo, 1,000 sims (~3.5s) -> reports/simulation/
+python scripts/run_simulation.py --simulations 10000               # Monte Carlo, 10,000 sims (full run)
+streamlit run app/streamlit_app.py                                 # launch the dashboard
 ```
 
-No `make`? Every target is a thin wrapper — run the underlying `python
-scripts/<name>.py` shown in each script's docstring (e.g.
-`python scripts/run_simulation.py --quick`).
+Every stage is independent and re-runnable; pass `-v` to any script for debug
+logging, or `--help` to see its options.
+
+### Quality gate (what CI runs)
+
+```bash
+python -m ruff check src tests scripts app          # lint
+python -m black --check src tests scripts app        # format check
+python -m pytest                                     # tests (fixture data only)
+
+# auto-fix before committing:
+python -m ruff check src tests scripts app --fix
+python -m black src tests scripts app
+```
 
 ---
 
@@ -331,8 +344,12 @@ az vm create -g worldcup-rg -n worldcup-vm \
 # 2. Lean setup + run the pipeline.
 ssh azureuser@<vm-ip>
 git clone <repo> && cd world-cup-ml-simulator
-make install-min
-make build-data build-features train-model evaluate simulate-quick
+python -m pip install -e .          # lean compute-only install (no Streamlit)
+python scripts/build_matches.py
+python scripts/build_features.py --matches data/interim/matches.parquet
+python scripts/train_model.py
+python scripts/generate_evaluation_report.py
+python scripts/run_simulation.py --quick
 ```
 
 **Cost control — the part that actually matters:**
@@ -341,7 +358,7 @@ make build-data build-features train-model evaluate simulate-quick
   `az vm deallocate -g worldcup-rg -n worldcup-vm` stops the meter (you keep only
   the small disk cost). `az vm start …` to resume.
 - **Auto-shutdown** as a safety net: `az vm auto-shutdown -g worldcup-rg -n worldcup-vm --time 0200`.
-- **Prefer quick mode** on the VM; run `make simulate-full` only for final figures.
+- **Prefer quick mode** on the VM; run the full 10,000-sim simulation only for final figures.
 - **Tear it all down** when done: `az group delete -n worldcup-rg`.
 
 **View the dashboard without exposing it.** Keep the NSG closed (no inbound 8501),
