@@ -16,6 +16,7 @@ rather than asserting an unverified bracket.
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -238,6 +239,116 @@ def _check_fixtures(config: TournamentConfig, valid_teams: set[str]) -> list[str
             f"{len(wrong)} team(s) do not have exactly {expected} group fixtures, e.g. {sample}"
         )
     return errors
+
+
+def build_knockout_seeding(
+    config: TournamentConfig,
+    group_winners: Sequence[str],
+    runners_up: Sequence[str],
+    best_thirds: Sequence[str],
+) -> list[str]:
+    """Build the ordered Round-of-32 seeding from the group qualifiers.
+
+    Two paths, in priority order:
+
+    1. **Config-driven (preferred):** if ``knockout_bracket.round_of_32`` lists
+       pairings, each match's ``home``/``away`` slot tokens (``1A`` = winner of
+       group A, ``2A`` = runner-up, ``3-n`` = the n-th best third) are resolved to
+       team names and concatenated in match order. This is how the *official*
+       bracket should be encoded once known.
+    2. **Documented placeholder:** the shipped config leaves ``round_of_32`` empty
+       because the official third-place→slot lookup table is not implemented. As a
+       fallback we seed by relative strength — winners, then runners-up, then
+       thirds — and pair strongest-vs-weakest (``seed i`` vs ``seed 31-i``). This
+       produces a *valid* 32-team bracket for the simulation but is **not** the
+       official pairing; replace it by filling in ``round_of_32``.
+
+    Args:
+        config: The tournament config (provides the optional pairings).
+        group_winners: The 12 group winners (1A..1L), in group order.
+        runners_up: The 12 runners-up (2A..2L), in group order.
+        best_thirds: The 8 best third-placed teams, best first.
+
+    Returns:
+        32 team names in bracket order (adjacent pairs are first-round matches).
+
+    Raises:
+        TournamentConfigError: If the qualifier counts are wrong, a configured
+            slot token is unknown, or the result is not 32 unique teams.
+    """
+    expected = (config.num_groups, config.num_groups, config.best_third_placed_advance)
+    actual = (len(group_winners), len(runners_up), len(best_thirds))
+    if actual != expected:
+        raise TournamentConfigError(
+            f"qualifier counts {actual} do not match expected {expected} "
+            "(group_winners, runners_up, best_thirds)"
+        )
+
+    pairings = config.knockout_bracket.get("round_of_32") or []
+    if pairings:
+        seeding = _seed_from_config_pairings(config, pairings, group_winners, runners_up, best_thirds)
+    else:
+        seeding = _seed_placeholder(group_winners, runners_up, best_thirds)
+
+    if len(set(seeding)) != len(seeding) or len(seeding) != 32:
+        raise TournamentConfigError(
+            f"knockout seeding must be 32 unique teams, got {len(seeding)} "
+            f"({len(set(seeding))} unique)"
+        )
+    return seeding
+
+
+def _slot_map(
+    config: TournamentConfig,
+    group_winners: Sequence[str],
+    runners_up: Sequence[str],
+    best_thirds: Sequence[str],
+) -> dict[str, str]:
+    """Map slot tokens (1A, 2A, 3-n) to team names."""
+    groups = list(config.groups.keys())
+    slots: dict[str, str] = {}
+    for group, winner, runner in zip(groups, group_winners, runners_up, strict=True):
+        slots[f"1{group}"] = winner
+        slots[f"2{group}"] = runner
+    for i, team in enumerate(best_thirds, start=1):
+        slots[f"3-{i}"] = team
+    return slots
+
+
+def _seed_from_config_pairings(
+    config: TournamentConfig,
+    pairings: list[dict[str, Any]],
+    group_winners: Sequence[str],
+    runners_up: Sequence[str],
+    best_thirds: Sequence[str],
+) -> list[str]:
+    """Resolve configured round-of-32 slot pairings into an ordered team list."""
+    slots = _slot_map(config, group_winners, runners_up, best_thirds)
+    seeding: list[str] = []
+    for match in pairings:
+        for key in ("home", "away"):
+            token = str(match[key])
+            if token not in slots:
+                raise TournamentConfigError(f"unknown knockout slot token {token!r}")
+            seeding.append(slots[token])
+    return seeding
+
+
+def _seed_placeholder(
+    group_winners: Sequence[str],
+    runners_up: Sequence[str],
+    best_thirds: Sequence[str],
+) -> list[str]:
+    """Strength-ordered placeholder seeding (winners > runners > thirds)."""
+    by_strength = [*group_winners, *runners_up, *best_thirds]
+    # Standard seeding: pair strongest with weakest, working inwards.
+    ordered: list[str] = []
+    lo, hi = 0, len(by_strength) - 1
+    while lo < hi:
+        ordered.extend([by_strength[lo], by_strength[hi]])
+        lo += 1
+        hi -= 1
+    return ordered
 
 
 def simulate_tournament(n_simulations: int = 10_000) -> pd.DataFrame:
