@@ -50,64 +50,112 @@ Requires Python 3.11+ (pinned dev interpreter 3.12) and
 [`uv`](https://docs.astral.sh/uv/).
 
 ```bash
-make install   # create .venv and install the package + dev tools
-make test      # run the test suite (240+ tests)
-make app       # launch the Streamlit dashboard
+make install     # full dev env: pipeline + tests + lint + the Streamlit app
+make install-min # lean compute-only env (no Streamlit, no dev tools) for a VM
+make test        # run the test suite (240+ tests)
+make app         # launch the Streamlit dashboard
 ```
 
 Without `uv` (e.g. an existing conda/system Python ≥ 3.11):
 
 ```bash
-python -m pip install -e ".[dev]"
-python -m pytest                              # pythonpath=src is preconfigured
-streamlit run app/streamlit_app.py            # launch the app
+python -m pip install -e ".[dev]"     # or `-e .` for the lean compute-only install
+python -m pytest                      # pythonpath=src is preconfigured
 ```
 
 ## Generate the data and outputs
 
 The dashboard is **read-only**: it loads saved artifacts and never retrains a
-model. Produce those artifacts with the pipeline scripts (datasets live in the
-gitignored `data/`):
+model. Produce those artifacts with the pipeline (datasets live in the gitignored
+`data/`). Every stage logs its runtime, and `build-features` **caches** its output
+(it skips the rebuild when nothing upstream changed; `--force` to override).
 
 ```bash
-python scripts/build_matches.py              # clean raw results -> data/interim/matches.parquet
-python scripts/build_features.py             # leakage-safe feature matrix
-python scripts/train_model.py                # calibrated match model + metrics
-python scripts/generate_evaluation_report.py # evaluation report + figures
-python scripts/run_simulation.py --quick     # Monte-Carlo title odds (1,000 sims, ~3s)
-python scripts/run_backtest.py               # backtest 2014/2018/2022
+make build-data        # clean raw results -> data/interim/matches.parquet
+make build-features    # leakage-safe feature table (cached)
+make train-baselines   # baseline models + metrics
+make train-model       # calibrated match model -> data/processed/model/ artifacts
+make evaluate          # evaluation report + figures
+make simulate-quick    # Monte-Carlo title odds (1,000 sims, ~3s)
+make simulate-full     # full Monte-Carlo run (10,000 sims)
+make backtest          # backtest 2014 / 2018 / 2022
+make app               # launch the dashboard
 ```
 
-Each app page that lacks its artifact shows the exact command above.
+Shortcuts: **`make pipeline-quick`** runs the whole chain on small samples (a fast
+end-to-end smoke), and **`make pipeline-full`** runs it at full size. Each app page
+that lacks its artifact shows the exact command to generate it.
 
-## Run the app
+### Quick vs full mode
 
-**Locally**
+| | Quick | Full |
+|--|-------|------|
+| Simulation | `make simulate-quick` (1,000 sims, ~3s) | `make simulate-full` (10,000 sims) |
+| Training | `... --sample 5000` (seconds) | `make train-model` (~all 49k matches) |
+| Whole pipeline | `make pipeline-quick` | `make pipeline-full` |
+
+Use **quick** mode while iterating or on a small/idle VM; switch to **full** only
+for the final numbers. Monte-Carlo estimates tighten with more simulations, so
+quote full-mode figures in any report.
+
+## Running on Azure (cost-controlled)
+
+The whole project is CPU-only, single-machine, and seeded — there is **no GPU and
+no cluster**. A cheap burstable VM is plenty; the priority is not leaving it
+running.
+
+**1. Provision a small VM**
 
 ```bash
-make app
-# or:
-streamlit run app/streamlit_app.py
-# then open http://localhost:8501
+az group create -n worldcup-rg -l eastus
+az vm create -g worldcup-rg -n worldcup-vm \
+  --image Ubuntu2404 --size Standard_B2s \
+  --admin-username azureuser --generate-ssh-keys
 ```
 
-**On a headless Azure VM (safely)**
+`Standard_B2s` (2 vCPU / 4 GB) handles the full pipeline; the data is a few MB and
+fits in RAM. Use a **Standard SSD**, not Premium.
 
-Don't expose Streamlit to the public internet. Bind it to localhost on the VM and
-reach it through an SSH tunnel:
+**2. Set up the lean environment**
 
 ```bash
-# On the VM (a cheap Burstable B2s, Ubuntu 24.04 is plenty):
+ssh azureuser@<vm-ip>
+git clone <repo> && cd world-cup-ml-simulator
+make install-min          # core pipeline only (no Streamlit) — smaller, faster
+make build-data build-features train-model evaluate simulate-quick
+```
+
+Add `.[app]` (or `make install`) only on the box that actually hosts the dashboard.
+
+**3. Cost control — the important part**
+
+- **Auto-shutdown** (set it once; the VM powers off daily even if you forget):
+  ```bash
+  az vm auto-shutdown -g worldcup-rg -n worldcup-vm --time 0200
+  ```
+- **Deallocate when idle** — *stopping* from inside the OS still bills for compute;
+  **deallocate** from Azure to stop the meter (you keep only the small disk cost):
+  ```bash
+  az vm deallocate -g worldcup-rg -n worldcup-vm   # stops compute billing
+  az vm start      -g worldcup-rg -n worldcup-vm   # resume later
+  ```
+- **Prefer quick mode** on the VM; run `make simulate-full` only when you need the
+  final figures. The cached feature table avoids paying to rebuild it each run.
+- **Tear down** the whole thing when done: `az group delete -n worldcup-rg`.
+
+**4. View the dashboard safely (no public exposure)**
+
+Keep the network security group closed (no inbound 8501). Bind Streamlit to
+localhost on the VM and reach it through an SSH tunnel:
+
+```bash
+# On the VM:
 streamlit run app/streamlit_app.py \
   --server.headless true --server.address 127.0.0.1 --server.port 8501
 
-# On your laptop, forward the port over SSH, then open http://localhost:8501:
-ssh -N -L 8501:127.0.0.1:8501 <user>@<vm-ip>
+# On your laptop, forward the port, then open http://localhost:8501:
+ssh -N -L 8501:127.0.0.1:8501 azureuser@<vm-ip>
 ```
-
-VM hygiene: enable **auto-shutdown**, **deallocate** when idle, and keep the NSG
-closed (no inbound 8501) — the SSH tunnel is the only path in. The app is
-CPU-only and needs no GPU.
 
 ## Project structure
 

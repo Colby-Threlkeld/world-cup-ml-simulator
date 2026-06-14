@@ -26,6 +26,7 @@ import argparse
 import json
 import logging
 import sys
+import time
 from pathlib import Path
 
 import joblib
@@ -55,6 +56,7 @@ PREDICTIONS_FILE = "predictions.csv"
 
 def main(argv: list[str] | None = None) -> int:
     """Run the main-model training pipeline. Returns a process exit code."""
+    t0 = time.perf_counter()
     args = _parse_args(argv)
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
@@ -72,6 +74,7 @@ def main(argv: list[str] | None = None) -> int:
 
     _log_summary(result)
     logger.info("Artifacts written to %s", out_dir)
+    logger.info("%s finished in %.2fs", "train-model", time.perf_counter() - t0)
     return 0
 
 

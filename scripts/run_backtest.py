@@ -18,6 +18,7 @@ import argparse
 import json
 import logging
 import sys
+import time
 from pathlib import Path
 
 # Allow running as a plain script without installing the package.
@@ -43,6 +44,7 @@ DEFAULT_REPORT = REPORTS_DIR / "backtesting_report.md"
 
 def main(argv: list[str] | None = None) -> int:
     """Run the backtest and write outputs. Returns a process exit code."""
+    t0 = time.perf_counter()
     args = _parse_args(argv)
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
@@ -81,6 +83,7 @@ def main(argv: list[str] | None = None) -> int:
             row["champion_predicted_rank"], row["n_participants"], row["champion_in_top_5"],
         )
     logger.info("Wrote report -> %s and artifacts -> %s", args.report, args.output_dir)
+    logger.info("%s finished in %.2fs", "backtest", time.perf_counter() - t0)
     return 0
 
 

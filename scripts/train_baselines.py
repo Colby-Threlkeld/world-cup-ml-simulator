@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+import time
 from pathlib import Path
 
 import pandas as pd
@@ -48,6 +49,7 @@ TARGET_COLUMN = "target_class"
 
 def main(argv: list[str] | None = None) -> int:
     """Run the baseline training/evaluation pipeline. Returns an exit code."""
+    t0 = time.perf_counter()
     args = _parse_args(argv)
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
@@ -73,6 +75,7 @@ def main(argv: list[str] | None = None) -> int:
 
     _log_leaderboard(metrics)
     logger.info("Wrote baseline metrics for %d model(s) -> %s", len(metrics["models"]), out_path)
+    logger.info("%s finished in %.2fs", "train-baselines", time.perf_counter() - t0)
     return 0
 
 

@@ -22,6 +22,7 @@ import argparse
 import json
 import logging
 import sys
+import time
 from pathlib import Path
 
 import pandas as pd
@@ -53,6 +54,7 @@ _CM_FIG_REL = "figures/confusion_matrix.png"
 
 def main(argv: list[str] | None = None) -> int:
     """Generate the evaluation report. Returns a process exit code."""
+    t0 = time.perf_counter()
     args = _parse_args(argv)
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
@@ -90,6 +92,7 @@ def main(argv: list[str] | None = None) -> int:
     logger.info("Wrote report -> %s", report_path)
     logger.info("Wrote figures -> %s, %s", out_dir / _CAL_FIG_REL, out_dir / _CM_FIG_REL)
     logger.info("Wrote metrics -> %s", out_dir / "metrics" / "model_metrics.json")
+    logger.info("%s finished in %.2fs", "evaluate", time.perf_counter() - t0)
     return 0
 
 

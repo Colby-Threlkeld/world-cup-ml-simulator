@@ -11,6 +11,10 @@ requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [{ name = "Colby Threlkeld" }]
 keywords = ["football", "soccer", "world-cup", "machine-learning", "monte-carlo", "forecasting"]
+# Core pipeline only — everything needed to build data, train, evaluate, and
+# simulate on a headless CPU VM. Deliberately lean: no GPU/boosting libraries and
+# no Streamlit (the dashboard is an optional extra), so a compute-only box stays
+# small and cheap to provision.
 dependencies = [
   "pandas>=2.1",
   "numpy>=1.26",
@@ -18,12 +22,13 @@ dependencies = [
   "scipy>=1.11",
   "scikit-learn>=1.4",
   "pyyaml>=6.0",
-  "matplotlib>=3.8",
-  "streamlit>=1.33",
+  "matplotlib>=3.8",        # report figures (Agg backend; no GUI)
 ]
 
 [project.optional-dependencies]
-# Gradient-boosted models — added only if they beat the simpler baselines (slice 4).
+# Streamlit dashboard — only needed to host the app, not to run the pipeline.
+app = ["streamlit>=1.33"]
+# Gradient-boosted models — added only if they beat the simpler baselines.
 boost = ["xgboost>=2.0", "lightgbm>=4.3"]
 dev = [
   "pytest>=8.0",
@@ -33,6 +38,7 @@ dev = [
   "mypy>=1.10",
   "types-PyYAML",
   "pandas-stubs",
+  "streamlit>=1.33",        # so `make app` works after `make install`
 ]
 
 [tool.hatch.build.targets.wheel]
