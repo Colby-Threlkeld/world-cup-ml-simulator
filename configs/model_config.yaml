@@ -9,6 +9,34 @@ elo:
   k_factor: 32
   home_advantage: 65   # rating points; set to 0 for neutral-venue matches.
 
+# Main model -- calibrated 3-class outcome model (worldcup.models.train).
+main_model:
+  type: logistic         # "logistic" (default, CPU-light) or "gradient_boosting".
+  C: 1.0                 # logistic inverse-regularization (smaller = more shrinkage).
+  max_iter: 1000
+  val_fraction: 0.15     # temporal holdout for calibration (not for tuning on test).
+  test_fraction: 0.15    # final scored-once window.
+  calibration: isotonic  # "isotonic", "sigmoid" (Platt), or "none".
+  # Only candidates that exist in the feature table are used; the rest are skipped
+  # with a warning. Never list label/score columns here.
+  feature_candidates:
+    - form_5_diff
+    - form_10_diff
+    - goals_for_5_diff
+    - goals_against_5_diff
+    - goal_diff_10_diff
+    - rest_days_diff
+    - elo_diff
+    - fifa_points_diff
+    - fifa_rank_diff
+    - is_team_a_home
+    - is_neutral
+  # gradient_boosting knobs (used only when type: gradient_boosting):
+  learning_rate: 0.05
+  max_depth: 3
+  n_estimators: 300
+  l2_regularization: 1.0
+
 # Slice 4 -- Poisson goals model.
 poisson:
   max_goals: 10        # truncate the scoreline grid at this many goals per team.

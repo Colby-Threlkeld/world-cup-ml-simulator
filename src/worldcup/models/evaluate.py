@@ -122,6 +122,77 @@ def evaluate_proba(
     return {"log_loss": ll, "brier": brier, "accuracy": accuracy, "n": int(len(y))}
 
 
+def evaluate_estimator(
+    estimator: object,
+    X: pd.DataFrame,
+    y_true: Sequence[str] | pd.Series | np.ndarray,
+    *,
+    classes: Sequence[str] = CLASS_ORDER,
+) -> dict[str, float]:
+    """Score any fitted estimator with a ``predict_proba`` against ``y_true``.
+
+    Reorders the estimator's probability columns to ``classes`` before scoring,
+    so a model whose ``classes_`` are in a different order is handled correctly.
+
+    Args:
+        estimator: A fitted classifier exposing ``predict_proba`` and ``classes_``.
+        X: Feature frame to predict on.
+        y_true: True labels aligned to ``X``.
+        classes: Desired class order for scoring.
+
+    Returns:
+        The metrics dict from :func:`evaluate_proba`.
+    """
+    proba = predict_proba_in_order(estimator, X, classes=classes)
+    return evaluate_proba(y_true, proba, classes=classes)
+
+
+def predict_proba_in_order(
+    estimator: object, X: pd.DataFrame, *, classes: Sequence[str] = CLASS_ORDER
+) -> np.ndarray:
+    """Return ``estimator.predict_proba(X)`` with columns ordered as ``classes``."""
+    proba = np.asarray(estimator.predict_proba(X))  # type: ignore[attr-defined]
+    est_classes = list(estimator.classes_)  # type: ignore[attr-defined]
+    if est_classes == list(classes):
+        return proba
+    index = {c: i for i, c in enumerate(est_classes)}
+    ordered = np.zeros((proba.shape[0], len(classes)))
+    for j, cls in enumerate(classes):
+        if cls in index:
+            ordered[:, j] = proba[:, index[cls]]
+    return ordered
+
+
+def probabilities_to_frame(
+    meta: pd.DataFrame,
+    proba: np.ndarray,
+    y_true: Sequence[str] | pd.Series | np.ndarray | None = None,
+    *,
+    classes: Sequence[str] = CLASS_ORDER,
+    id_columns: Sequence[str] = ("match_id", "date", "team_a", "team_b"),
+) -> pd.DataFrame:
+    """Assemble a predictions frame: id columns + per-class ``p_<class>`` columns.
+
+    Args:
+        meta: Source frame holding the identifier columns (e.g. the test split).
+        proba: Probabilities, shape ``(len(meta), len(classes))``.
+        y_true: Optional true labels to attach as ``target_class``.
+        classes: Class order matching ``proba`` columns.
+        id_columns: Identifier columns to carry through (those that exist in
+            ``meta`` are kept, in order).
+
+    Returns:
+        A new predictions DataFrame.
+    """
+    present_ids = [c for c in id_columns if c in meta.columns]
+    out = meta[present_ids].reset_index(drop=True).copy()
+    if y_true is not None:
+        out["target_class"] = np.asarray(y_true)
+    for j, cls in enumerate(classes):
+        out[f"p_{cls}"] = proba[:, j]
+    return out
+
+
 def save_metrics(metrics: dict, path: Path | str) -> Path:
     """Write a metrics dict to JSON (sorted keys, 2-space indent → deterministic).
 
