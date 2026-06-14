@@ -90,9 +90,7 @@ def check_matches(
         dated = df["date"].dropna()
         out_of_range = int(((dated < min_date) | (dated > upper)).sum())
         if out_of_range:
-            errors.append(
-                f"{out_of_range} date(s) outside [{min_date.date()}, {upper.date()}]"
-            )
+            errors.append(f"{out_of_range} date(s) outside [{min_date.date()}, {upper.date()}]")
 
     # 3. No duplicate match_id values.
     dup_ids = int(df["match_id"].duplicated().sum())
@@ -109,13 +107,9 @@ def check_matches(
 
     # 5. Team names are normalized (normalization is idempotent on canonical names).
     teams = pd.unique(pd.concat([df["home_team"], df["away_team"]], ignore_index=True).dropna())
-    un_normalized = sorted(
-        {t for t in teams if isinstance(t, str) and normalize_team_name(t) != t}
-    )
+    un_normalized = sorted({t for t in teams if isinstance(t, str) and normalize_team_name(t) != t})
     if un_normalized:
-        errors.append(
-            f"{len(un_normalized)} un-normalized team name(s): {un_normalized[:10]}"
-        )
+        errors.append(f"{len(un_normalized)} un-normalized team name(s): {un_normalized[:10]}")
 
     # 6. home_team and away_team differ.
     same_team = int((df["home_team"] == df["away_team"]).sum())
@@ -206,9 +200,7 @@ def validate_rating_features(
         LeakageError: If any rating date is strictly after its match date.
     """
     for col in rating_date_cols:
-        validate_no_future_ratings(
-            df, rating_date_col=col, match_date_col=match_date_col
-        )
+        validate_no_future_ratings(df, rating_date_col=col, match_date_col=match_date_col)
 
 
 def validate_probabilities(

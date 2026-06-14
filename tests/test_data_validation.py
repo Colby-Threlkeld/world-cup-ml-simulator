@@ -1,6 +1,5 @@
 """Tests for the data validation layer (worldcup.data.validate_data)."""
 
-import numpy as np
 import pandas as pd
 import pytest
 

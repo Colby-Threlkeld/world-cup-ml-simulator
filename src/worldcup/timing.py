@@ -53,8 +53,4 @@ def is_up_to_date(output: Path | str, inputs: Iterable[Path | str]) -> bool:
     if not out.exists():
         return False
     out_mtime = out.stat().st_mtime
-    return all(
-        Path(src).stat().st_mtime <= out_mtime
-        for src in inputs
-        if Path(src).exists()
-    )
+    return all(Path(src).stat().st_mtime <= out_mtime for src in inputs if Path(src).exists())

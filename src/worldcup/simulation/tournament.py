@@ -77,7 +77,7 @@ class TournamentConfig:
     draw_status: str = "placeholder"
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "TournamentConfig":
+    def from_dict(cls, data: dict[str, Any]) -> TournamentConfig:
         """Build a config from a parsed YAML mapping (no validation performed).
 
         Raises:
@@ -299,7 +299,9 @@ def build_knockout_seeding(
 
     pairings = config.knockout_bracket.get("round_of_32") or []
     if pairings:
-        seeding = _seed_from_config_pairings(config, pairings, group_winners, runners_up, best_thirds)
+        seeding = _seed_from_config_pairings(
+            config, pairings, group_winners, runners_up, best_thirds
+        )
     else:
         seeding = _seed_placeholder(group_winners, runners_up, best_thirds)
 
@@ -516,7 +518,9 @@ def summarize_simulation(
         "runtime_seconds": round(float(runtime_seconds), 3),
         "n_teams": int(len(probabilities)),
         "draw_status": draw_status,
-        "title_probability_total": round(float(probabilities["win_world_cup_probability"].sum()), 6),
+        "title_probability_total": round(
+            float(probabilities["win_world_cup_probability"].sum()), 6
+        ),
         "top_title_contenders": [
             {"team": str(team), "win_world_cup_probability": round(float(prob), 4)}
             for team, prob in zip(top["team"], top["win_world_cup_probability"], strict=True)
@@ -566,7 +570,7 @@ def _simulate_one_tournament(
 def _memoize_predict(predict: PredictFn) -> PredictFn:
     """Wrap a predictor in an unbounded cache (probabilities are fixed per pairing)."""
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def cached(team_a: str, team_b: str) -> tuple[float, ...]:
         return tuple(float(p) for p in predict(team_a, team_b))
 

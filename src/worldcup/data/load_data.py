@@ -59,8 +59,7 @@ def load_raw_matches(path: Path | str | None = None) -> pd.DataFrame:
     missing = [col for col in RAW_MATCH_COLUMNS if col not in df.columns]
     if missing:
         raise DataValidationError(
-            f"{csv_path.name} is missing expected columns: {missing}. "
-            f"Found: {list(df.columns)}"
+            f"{csv_path.name} is missing expected columns: {missing}. " f"Found: {list(df.columns)}"
         )
     logger.info("Loaded %d raw match rows", len(df))
     return df

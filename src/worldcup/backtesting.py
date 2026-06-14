@@ -212,7 +212,7 @@ def _walk_forward_elo(
         rb = ratings.get(row.team_b, base)
         a_pre[i] = ra
         b_pre[i] = rb
-        adv = home_advantage if (has_home and getattr(row, "is_team_a_home")) else 0.0
+        adv = home_advantage if (has_home and row.is_team_a_home) else 0.0
         expected_a = expected_score(ra, rb, adv)
         if row.team_a_score > row.team_b_score:
             actual_a = 1.0
@@ -307,7 +307,9 @@ def predict_tournament_matches(
         if len(base_rows) > 0 and calib_rows[TARGET_COLUMN].nunique() >= 2:
             estimator.fit(base_rows[features], base_rows[TARGET_COLUMN].to_numpy())
             model = fit_calibrated_model(
-                estimator, calib_rows[features], calib_rows[TARGET_COLUMN].to_numpy(),
+                estimator,
+                calib_rows[features],
+                calib_rows[TARGET_COLUMN].to_numpy(),
                 method=cal_method,
             )
             return predict_proba_in_order(model, test[features])
@@ -361,7 +363,9 @@ def backtest_tournament(
     if train.empty:
         raise BacktestError(f"{tournament.name}: no matches before {tournament.start.date()}")
     if test.empty:
-        raise BacktestError(f"{tournament.name}: no '{tournament.tournament_name}' matches in window")
+        raise BacktestError(
+            f"{tournament.name}: no '{tournament.tournament_name}' matches in window"
+        )
 
     feature_list = select_features(train, list(feature_candidates or DEFAULT_FEATURE_CANDIDATES))
     proba = predict_tournament_matches(train, test, feature_list, model_config=model_config)
@@ -378,9 +382,16 @@ def backtest_tournament(
     logger.info(
         "%s: train=%d test=%d | log_loss=%.4f brier=%.4f acc=%.3f ece=%.4f | "
         "champion %s ranked %s/%d",
-        tournament.name, len(train), len(test), metrics["log_loss"], metrics["brier"],
-        metrics["accuracy"], metrics["calibration_error"], tournament.champion,
-        rank_report["predicted_rank"], rank_report["n_participants"],
+        tournament.name,
+        len(train),
+        len(test),
+        metrics["log_loss"],
+        metrics["brier"],
+        metrics["accuracy"],
+        metrics["calibration_error"],
+        tournament.champion,
+        rank_report["predicted_rank"],
+        rank_report["n_participants"],
     )
     return BacktestResult(
         name=tournament.name,
@@ -406,8 +417,10 @@ def run_backtests(
         features = add_elo_features(features)
     return [
         backtest_tournament(
-            features, tournament,
-            feature_candidates=feature_candidates, model_config=model_config,
+            features,
+            tournament,
+            feature_candidates=feature_candidates,
+            model_config=model_config,
         )
         for tournament in tournaments
     ]
@@ -498,10 +511,15 @@ def _metrics_table(rows: Sequence[Mapping[str, Any]]) -> str:
 def _winner_table(rows: Sequence[Mapping[str, Any]]) -> str:
     header = "| tournament | champion | predicted rank | top 3 | top 5 | top 10 |"
     divider = "| --- | --- | --- | --- | --- | --- |"
+
+    def yn(value: object) -> str:
+        return "yes" if value else "no"
+
     body = [
-        f"| {r['tournament']} | {r['champion']} | {r['champion_predicted_rank']}/{r['n_participants']} "
-        f"| {'yes' if r['champion_in_top_3'] else 'no'} | {'yes' if r['champion_in_top_5'] else 'no'} "
-        f"| {'yes' if r['champion_in_top_10'] else 'no'} |"
+        f"| {r['tournament']} | {r['champion']} "
+        f"| {r['champion_predicted_rank']}/{r['n_participants']} "
+        f"| {yn(r['champion_in_top_3'])} | {yn(r['champion_in_top_5'])} "
+        f"| {yn(r['champion_in_top_10'])} |"
         for r in rows
     ]
     return "\n".join([header, divider, *body])

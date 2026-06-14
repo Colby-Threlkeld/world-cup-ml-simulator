@@ -23,7 +23,7 @@ def _group_results() -> pd.DataFrame:
 
 def test_standings_points_and_goal_difference():
     standings = {s.team: s for s in compute_standings(_group_results())}
-    assert standings["A"].points == 4            # one win, one draw
+    assert standings["A"].points == 4  # one win, one draw
     assert standings["A"].goal_difference == 2
     assert standings["B"].points == 3
     assert standings["C"].points == 1

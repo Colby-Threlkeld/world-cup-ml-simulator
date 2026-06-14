@@ -11,17 +11,15 @@ from worldcup.timing import is_up_to_date, log_runtime
 
 def test_log_runtime_emits_a_timing_line(caplog: pytest.LogCaptureFixture) -> None:
     logger = logging.getLogger("timing_test")
-    with caplog.at_level(logging.INFO):
-        with log_runtime(logger, "demo-stage"):
-            pass
+    with caplog.at_level(logging.INFO), log_runtime(logger, "demo-stage"):
+        pass
     assert any("demo-stage finished in" in m for m in caplog.messages)
 
 
 def test_log_runtime_logs_even_on_exception(caplog: pytest.LogCaptureFixture) -> None:
     logger = logging.getLogger("timing_test")
-    with caplog.at_level(logging.INFO), pytest.raises(ValueError):
-        with log_runtime(logger, "boom"):
-            raise ValueError("kaboom")
+    with caplog.at_level(logging.INFO), pytest.raises(ValueError), log_runtime(logger, "boom"):
+        raise ValueError("kaboom")
     assert any("boom finished in" in m for m in caplog.messages)
 
 

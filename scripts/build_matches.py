@@ -37,7 +37,10 @@ def main(argv: list[str] | None = None) -> int:
         "--input", type=Path, default=None, help="raw results CSV (default: data/raw/results.csv)"
     )
     parser.add_argument(
-        "--output", type=Path, default=None, help=f"output parquet (default: {DEFAULT_MATCHES_PATH})"
+        "--output",
+        type=Path,
+        default=None,
+        help=f"output parquet (default: {DEFAULT_MATCHES_PATH})",
     )
     parser.add_argument("-v", "--verbose", action="store_true", help="enable debug logging")
     args = parser.parse_args(argv)

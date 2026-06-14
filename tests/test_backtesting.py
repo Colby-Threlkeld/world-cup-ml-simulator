@@ -10,6 +10,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 import run_backtest as cli  # noqa: E402
+
 from worldcup.backtesting import (  # noqa: E402
     BACKTEST_TOURNAMENTS,
     BacktestError,
@@ -38,9 +39,16 @@ def _row(mid: int, date: str, a: str, b: str, strength: dict[str, int]) -> dict:
     target = "team_a_win" if ha > hb else ("team_b_win" if ha < hb else "draw")
     tourn = "Mini Cup" if pd.Timestamp(date).year == 2014 else "Friendly"
     return {
-        "match_id": mid, "date": pd.Timestamp(date), "team_a": a, "team_b": b,
-        "team_a_score": ha, "team_b_score": hb, "target_class": target,
-        "tournament": tourn, "is_team_a_home": False, "is_neutral": True,
+        "match_id": mid,
+        "date": pd.Timestamp(date),
+        "team_a": a,
+        "team_b": b,
+        "team_a_score": ha,
+        "team_b_score": hb,
+        "target_class": target,
+        "tournament": tourn,
+        "is_team_a_home": False,
+        "is_neutral": True,
     }
 
 
@@ -197,7 +205,10 @@ def test_run_backtests_and_report() -> None:
     report = backtest_report(results)
     assert report["aggregate"]["n_tournaments"] == 1
     assert set(report["tournaments"][0]) >= {
-        "tournament", "log_loss", "champion_predicted_rank", "champion_in_top_5"
+        "tournament",
+        "log_loss",
+        "champion_predicted_rank",
+        "champion_in_top_5",
     }
 
 
@@ -214,6 +225,14 @@ def test_render_markdown_is_honest_and_complete() -> None:
 
 
 def test_cli_missing_matches_file_returns_error(tmp_path: Path) -> None:
-    rc = cli.main(["--matches", str(tmp_path / "absent.parquet"), "--output-dir", str(tmp_path / "o"),
-                   "--report", str(tmp_path / "r.md")])
+    rc = cli.main(
+        [
+            "--matches",
+            str(tmp_path / "absent.parquet"),
+            "--output-dir",
+            str(tmp_path / "o"),
+            "--report",
+            str(tmp_path / "r.md"),
+        ]
+    )
     assert rc == 1

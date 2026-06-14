@@ -6,7 +6,6 @@ import pytest
 from worldcup.simulation.knockout import (
     ADVANCEMENT_KEYS,
     knockout_advance_probability,
-    resolve_knockout,
     simulate_bracket,
     simulate_knockout_match,
 )
@@ -99,7 +98,14 @@ def test_bracket_round_sizes_are_correct() -> None:
 def test_each_round_is_subset_of_previous() -> None:
     rng = np.random.default_rng(11)
     adv = simulate_bracket(_bracket(32), _strength_predict, rng).advancement
-    order = ["reach_round_32", "reach_round_16", "reach_quarterfinal", "reach_semifinal", "reach_final", "champion"]
+    order = [
+        "reach_round_32",
+        "reach_round_16",
+        "reach_quarterfinal",
+        "reach_semifinal",
+        "reach_final",
+        "champion",
+    ]
     for earlier, later in zip(order, order[1:]):
         assert set(adv[later]) <= set(adv[earlier])  # survivors came from the prior round
 
@@ -153,8 +159,8 @@ def test_different_seeds_can_change_champion() -> None:
 def test_build_knockout_seeding_placeholder_path() -> None:
     config = load_tournament_config()
     groups = list(config.groups.keys())
-    winners = [config.groups[g][0] for g in groups]   # 12
-    runners = [config.groups[g][1] for g in groups]   # 12
+    winners = [config.groups[g][0] for g in groups]  # 12
+    runners = [config.groups[g][1] for g in groups]  # 12
     thirds = [config.groups[g][2] for g in groups[:8]]  # 8 best (placeholder choice)
 
     seeding = build_knockout_seeding(config, winners, runners, thirds)
@@ -173,7 +179,10 @@ def test_build_knockout_seeding_uses_config_pairings() -> None:
     # Inject explicit pairings: 1A vs 3-1, 2B vs 2C, ... (just enough to be 16 matches).
     slots_home = [f"1{g}" for g in groups] + [f"2{g}" for g in groups[:4]]
     slots_away = [f"3-{i}" for i in range(1, 9)] + [f"2{g}" for g in groups[4:12]]
-    pairings = [{"match": i + 73, "home": h, "away": a} for i, (h, a) in enumerate(zip(slots_home, slots_away))]
+    pairings = [
+        {"match": i + 73, "home": h, "away": a}
+        for i, (h, a) in enumerate(zip(slots_home, slots_away))
+    ]
     config.knockout_bracket["round_of_32"] = pairings
 
     seeding = build_knockout_seeding(config, winners, runners, thirds)

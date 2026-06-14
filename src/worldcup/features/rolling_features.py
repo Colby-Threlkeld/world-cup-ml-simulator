@@ -133,7 +133,7 @@ def add_rolling_features(model_df: pd.DataFrame) -> pd.DataFrame:
 # --- internal helpers -------------------------------------------------------
 
 
-def _rolling_mean(grp: "pd.core.groupby.DataFrameGroupBy", col: str, window: int) -> pd.Series:
+def _rolling_mean(grp: pd.core.groupby.DataFrameGroupBy, col: str, window: int) -> pd.Series:
     """Backward-looking rolling mean that excludes the current match (shift 1)."""
     return grp[col].transform(lambda s: s.shift(1).rolling(window, min_periods=1).mean())
 

@@ -16,6 +16,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 import train_model as cli  # noqa: E402
+
 from worldcup.data.clean_data import TARGET_CLASSES  # noqa: E402
 from worldcup.data.validate_data import DataValidationError  # noqa: E402
 from worldcup.features.rolling_features import DIFFERENCE_FEATURES  # noqa: E402
@@ -129,7 +130,11 @@ def test_test_split_occurs_after_train_split(features: pd.DataFrame) -> None:
 def test_metrics_include_baseline_comparison(features: pd.DataFrame) -> None:
     result = run_training(features, {"calibration": "sigmoid"})
     cmp = result.metrics["comparison"]
-    assert {"main_calibrated_test_log_loss", "best_baseline_test_log_loss", "beats_best_baseline"} <= set(cmp)
+    assert {
+        "main_calibrated_test_log_loss",
+        "best_baseline_test_log_loss",
+        "beats_best_baseline",
+    } <= set(cmp)
     assert "uniform_random" in result.metrics["baselines"]
     for split in ("validation", "test"):
         for variant in result.metrics["main_model"][split].values():
@@ -169,7 +174,10 @@ def test_cli_writes_all_artifacts(tmp_path: Path) -> None:
 
 
 def test_cli_missing_features_file_returns_error(tmp_path: Path) -> None:
-    assert cli.main(["--features", str(tmp_path / "nope.csv"), "--output-dir", str(tmp_path / "m")]) == 1
+    assert (
+        cli.main(["--features", str(tmp_path / "nope.csv"), "--output-dir", str(tmp_path / "m")])
+        == 1
+    )
 
 
 def test_cli_sample_mode_limits_training_rows(tmp_path: Path) -> None:
@@ -178,7 +186,16 @@ def test_cli_sample_mode_limits_training_rows(tmp_path: Path) -> None:
     _make_features(n=400).to_csv(feats_csv, index=False)
 
     rc = cli.main(
-        ["--features", str(feats_csv), "--output-dir", str(out_dir), "--sample", "120", "--calibration", "sigmoid"]
+        [
+            "--features",
+            str(feats_csv),
+            "--output-dir",
+            str(out_dir),
+            "--sample",
+            "120",
+            "--calibration",
+            "sigmoid",
+        ]
     )
     assert rc == 0
     # 120 sampled rows, 15% test fraction -> ~18 predictions.

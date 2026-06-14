@@ -1,5 +1,12 @@
 # World Cup ML Simulator
 
+<!-- Badge placeholders — replace OWNER/REPO once the repo is on GitHub. -->
+[![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue)](pyproject.toml)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000)](https://github.com/psf/black)
+[![Lint: ruff](https://img.shields.io/badge/lint-ruff-261230)](https://github.com/astral-sh/ruff)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 Forecast international football match outcomes from 150+ years of results, then
 simulate the **2026 FIFA World Cup** (48 teams, 12 groups) with Monte Carlo to
 estimate each nation's title odds — all judged against honest baselines and

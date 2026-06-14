@@ -104,9 +104,7 @@ def build_model_dataset(matches: pd.DataFrame) -> pd.DataFrame:
     """
     missing = [col for col in _REQUIRED_MATCH_COLUMNS if col not in matches.columns]
     if missing:
-        raise DataValidationError(
-            f"matches frame missing columns for the model dataset: {missing}"
-        )
+        raise DataValidationError(f"matches frame missing columns for the model dataset: {missing}")
 
     team_a_score = matches["home_score"].to_numpy()
     team_b_score = matches["away_score"].to_numpy()
@@ -251,17 +249,13 @@ def load_optional_ratings(
 
     ratings = pd.read_csv(src)
     if date_col not in ratings.columns:
-        raise DataValidationError(
-            f"{label} file {src} missing date column '{date_col}'"
-        )
+        raise DataValidationError(f"{label} file {src} missing date column '{date_col}'")
     ratings[date_col] = pd.to_datetime(ratings[date_col])
     logger.info("Loaded %d %s row(s) from %s", len(ratings), label, src)
     return ratings
 
 
-def validate_feature_matrix(
-    features: pd.DataFrame, *, expected_rows: int | None = None
-) -> None:
+def validate_feature_matrix(features: pd.DataFrame, *, expected_rows: int | None = None) -> None:
     """Validate the assembled feature table before it is written.
 
     Checks structural integrity and leakage-relevant invariants: required columns
@@ -287,9 +281,7 @@ def validate_feature_matrix(
         raise DataValidationError(f"feature matrix missing columns: {missing}")
 
     if expected_rows is not None and len(features) != expected_rows:
-        errors.append(
-            f"row count {len(features)} != expected {expected_rows} (one per match)"
-        )
+        errors.append(f"row count {len(features)} != expected {expected_rows} (one per match)")
 
     n_dup_ids = int(features["match_id"].duplicated().sum())
     if n_dup_ids:
@@ -307,7 +299,10 @@ def validate_feature_matrix(
     if errors:
         raise DataValidationError(
             "\n".join(
-                [f"{len(errors)} validation error(s) in feature matrix:", *(f"  - {e}" for e in errors)]
+                [
+                    f"{len(errors)} validation error(s) in feature matrix:",
+                    *(f"  - {e}" for e in errors),
+                ]
             )
         )
 

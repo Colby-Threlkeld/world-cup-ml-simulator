@@ -97,19 +97,34 @@ def main(argv: list[str] | None = None) -> int:
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build the model-ready feature table.")
     parser.add_argument(
-        "--matches", type=Path, default=DEFAULT_MATCHES, help=f"cleaned matches (default: {DEFAULT_MATCHES})"
+        "--matches",
+        type=Path,
+        default=DEFAULT_MATCHES,
+        help=f"cleaned matches (default: {DEFAULT_MATCHES})",
     )
     parser.add_argument(
-        "--elo", type=Path, default=DEFAULT_ELO, help=f"optional Elo ratings CSV (default: {DEFAULT_ELO})"
+        "--elo",
+        type=Path,
+        default=DEFAULT_ELO,
+        help=f"optional Elo ratings CSV (default: {DEFAULT_ELO})",
     )
     parser.add_argument(
-        "--fifa", type=Path, default=DEFAULT_FIFA, help=f"optional FIFA rankings CSV (default: {DEFAULT_FIFA})"
+        "--fifa",
+        type=Path,
+        default=DEFAULT_FIFA,
+        help=f"optional FIFA rankings CSV (default: {DEFAULT_FIFA})",
     )
     parser.add_argument(
-        "--output", type=Path, default=DEFAULT_FEATURES_PATH, help=f"output CSV (default: {DEFAULT_FEATURES_PATH})"
+        "--output",
+        type=Path,
+        default=DEFAULT_FEATURES_PATH,
+        help=f"output CSV (default: {DEFAULT_FEATURES_PATH})",
     )
     parser.add_argument(
-        "--sample", type=int, default=None, help="build features on only the first N matches (quick smoke)"
+        "--sample",
+        type=int,
+        default=None,
+        help="build features on only the first N matches (quick smoke)",
     )
     parser.add_argument(
         "--force", action="store_true", help="rebuild even if the output is up to date"

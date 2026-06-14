@@ -193,9 +193,13 @@ def run_training(features: pd.DataFrame, config: dict[str, Any] | None = None) -
     )
     logger.info(
         "Split: train=%d (%s..%s) | val=%d (..%s) | test=%d (..%s) | %d feature(s)",
-        len(train), train["date"].min().date(), train["date"].max().date(),
-        len(val), val["date"].max().date(),
-        len(test), test["date"].max().date(),
+        len(train),
+        train["date"].min().date(),
+        train["date"].max().date(),
+        len(val),
+        val["date"].max().date(),
+        len(test),
+        test["date"].max().date(),
         len(feature_list),
     )
 
@@ -276,9 +280,7 @@ def _build_metrics(
     }
 
 
-def _baseline_metrics(
-    train: pd.DataFrame, test: pd.DataFrame
-) -> dict[str, dict[str, float]]:
+def _baseline_metrics(train: pd.DataFrame, test: pd.DataFrame) -> dict[str, dict[str, float]]:
     """Fit each available baseline on train and score it on the same test rows.
 
     Baselines select their own feature columns from the frame and already emit

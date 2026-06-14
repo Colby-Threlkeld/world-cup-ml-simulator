@@ -90,9 +90,7 @@ def test_different_seeds_can_differ() -> None:
 def test_overwhelming_favourite_wins_most() -> None:
     strengths = dict.fromkeys(CONFIG.teams(), 0.0)
     strengths["A1"] = 100_000.0  # absurdly strong
-    probs = simulate_tournament(
-        CONFIG, strength_predict_fn(strengths), n_simulations=SIMS, seed=3
-    )
+    probs = simulate_tournament(CONFIG, strength_predict_fn(strengths), n_simulations=SIMS, seed=3)
     top = probs.iloc[0]
     assert top["team"] == "A1"
     assert top["win_world_cup_probability"] > probs["win_world_cup_probability"].drop(0).max()

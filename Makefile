@@ -7,12 +7,13 @@
 # `make pipeline-quick` runs the whole chain fast; `make pipeline-full` runs it
 # at full size. All stages log their runtime; build-features caches its output.
 
-.PHONY: install install-min test lint format typecheck clean \
+.PHONY: install install-min test lint format typecheck check pre-commit clean \
         build-data build-features train-baselines train-model evaluate \
         simulate-quick simulate-full backtest app \
         pipeline-quick pipeline-full
 
 PY := uv run python
+LINT_PATHS := src tests scripts app
 
 ## install: full dev environment (pipeline + tests + lint + the Streamlit app).
 install:
@@ -28,19 +29,26 @@ install-min:
 test:
 	uv run pytest
 
-## lint: check style and imports without modifying files.
+## lint: check style and imports without modifying files (matches CI).
 lint:
-	uv run ruff check src tests
-	uv run black --check src tests
+	uv run ruff check $(LINT_PATHS)
+	uv run black --check $(LINT_PATHS)
 
 ## format: auto-fix lint issues and format the code.
 format:
-	uv run ruff check --fix src tests
-	uv run black src tests
+	uv run ruff check --fix $(LINT_PATHS)
+	uv run black $(LINT_PATHS)
 
 ## typecheck: run static type checking.
 typecheck:
 	uv run mypy src
+
+## check: the full local quality gate — exactly what CI runs.
+check: lint test
+
+## pre-commit: install the git pre-commit hooks.
+pre-commit:
+	uv run pre-commit install
 
 # --- data + model pipeline --------------------------------------------------
 

@@ -12,6 +12,7 @@ from matplotlib.figure import Figure
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 import generate_evaluation_report as cli  # noqa: E402
+
 from worldcup.data.clean_data import TARGET_CLASSES  # noqa: E402
 from worldcup.models.evaluate import (  # noqa: E402
     BRIER_EXPLANATION,
@@ -44,7 +45,11 @@ def _predictions(n: int = 200, seed: int = 0) -> pd.DataFrame:
         proba[i, k] += 1.0
     proba /= proba.sum(axis=1, keepdims=True)
     frame = pd.DataFrame(
-        {"match_id": np.arange(n), "date": pd.date_range("2020-01-01", periods=n, freq="D"), "target_class": y}
+        {
+            "match_id": np.arange(n),
+            "date": pd.date_range("2020-01-01", periods=n, freq="D"),
+            "target_class": y,
+        }
     )
     for k, c in enumerate(TARGET_CLASSES):
         frame[f"p_{c}"] = proba[:, k]
@@ -53,6 +58,7 @@ def _predictions(n: int = 200, seed: int = 0) -> pd.DataFrame:
 
 def _metrics() -> dict:
     """A metrics dict shaped like worldcup.models.train.run_training output."""
+
     def m(ll, br, ac):
         return {"log_loss": ll, "brier": br, "accuracy": ac, "n": 200}
 
@@ -117,7 +123,7 @@ def test_metrics_summary_frame_sorted_and_complete() -> None:
     # Sorted ascending by log loss (best first).
     assert list(summary["log_loss"]) == sorted(summary["log_loss"])
     # Main model + both baselines + uncalibrated variant are all present.
-    assert any("main_model (calibrated)" == name for name in summary["model"])
+    assert any(name == "main_model (calibrated)" for name in summary["model"])
     assert {"uniform_random", "recent_form_logistic"} <= set(summary["model"])
 
 
@@ -131,7 +137,10 @@ def test_explanations_are_plain_english_and_nonempty() -> None:
 
 def test_render_markdown_has_sections_and_does_not_overclaim() -> None:
     md = render_evaluation_markdown(
-        _metrics(), _predictions(), calibration_figure="figures/c.png", confusion_figure="figures/cm.png"
+        _metrics(),
+        _predictions(),
+        calibration_figure="figures/c.png",
+        confusion_figure="figures/cm.png",
     )
     for heading in (
         "# Model Evaluation Report",
@@ -159,7 +168,9 @@ def test_plots_return_figures_and_save(tmp_path: Path) -> None:
     preds = _predictions()
     proba = preds[[f"p_{c}" for c in TARGET_CLASSES]].to_numpy()
     cal_fig = plot_calibration_curve(preds["target_class"], proba)
-    cm_fig = plot_confusion_matrix(confusion_matrix_frame(preds["target_class"], predicted_labels(proba)))
+    cm_fig = plot_confusion_matrix(
+        confusion_matrix_frame(preds["target_class"], predicted_labels(proba))
+    )
     assert isinstance(cal_fig, Figure) and isinstance(cm_fig, Figure)
 
     cal_path = save_figure(cal_fig, tmp_path / "figures" / "cal.png")
@@ -170,7 +181,10 @@ def test_plots_return_figures_and_save(tmp_path: Path) -> None:
 
 def test_plot_title_probabilities(tmp_path: Path) -> None:
     probs = pd.DataFrame(
-        {"team": [f"T{i}" for i in range(20)], "win_world_cup_probability": np.linspace(0.2, 0.01, 20)}
+        {
+            "team": [f"T{i}" for i in range(20)],
+            "win_world_cup_probability": np.linspace(0.2, 0.01, 20),
+        }
     )
     fig = plot_title_probabilities(probs, top_n=10)
     assert isinstance(fig, Figure)
@@ -199,4 +213,7 @@ def test_cli_generates_all_outputs(tmp_path: Path) -> None:
 
 
 def test_cli_missing_artifacts_returns_error(tmp_path: Path) -> None:
-    assert cli.main(["--model-dir", str(tmp_path / "absent"), "--output-dir", str(tmp_path / "r")]) == 1
+    assert (
+        cli.main(["--model-dir", str(tmp_path / "absent"), "--output-dir", str(tmp_path / "r")])
+        == 1
+    )

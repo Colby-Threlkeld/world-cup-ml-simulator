@@ -1,0 +1,14 @@
+date,home_team,away_team,home_score,away_score,tournament,city,country,neutral
+2009-05-05,England,Scotland,3,0,Friendly,London,England,False
+2010-01-10,USA,Mexico,2,1,Friendly,Pasadena,United States,True
+2011-03-15,Germany,France,1,1,Friendly,Berlin,Germany,False
+2012-07-20,Argentina,Brazil,2,2,Friendly,Buenos Aires,Argentina,False
+2013-08-14,Spain,Italy,0,0,Friendly,Madrid,Spain,False
+2014-06-12,Brazil,Croatia,3,1,FIFA World Cup,Sao Paulo,Brazil,False
+2014-06-13,Mexico,Cameroon,1,0,FIFA World Cup,Natal,Brazil,True
+2018-06-14,Russia,Saudi Arabia,5,0,FIFA World Cup,Moscow,Russia,False
+2018-06-15,Egypt,Uruguay,0,1,FIFA World Cup,Yekaterinburg,Russia,True
+2022-11-20,Qatar,Ecuador,0,2,FIFA World Cup,Al Khor,Qatar,False
+2022-11-21,England,Iran,6,2,FIFA World Cup,Doha,Qatar,True
+2026-06-12,United States,Mexico,,,FIFA World Cup,Los Angeles,United States,False
+2026-06-13,Canada,Croatia,,,FIFA World Cup,Toronto,Canada,False

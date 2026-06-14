@@ -16,6 +16,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 import train_baselines as cli  # noqa: E402
+
 from worldcup.data.clean_data import TARGET_CLASSES  # noqa: E402
 from worldcup.features.rolling_features import DIFFERENCE_FEATURES  # noqa: E402
 from worldcup.models.baseline import (  # noqa: E402
@@ -125,9 +126,9 @@ def test_missing_feature_raises(features: pd.DataFrame) -> None:
 
 
 def test_ensemble_sums_to_one_and_blends(features: pd.DataFrame) -> None:
-    ensemble = WeightedEnsembleBaseline(
-        [ClassFrequencyBaseline(), EloLogisticBaseline()]
-    ).fit(features, features["target_class"])
+    ensemble = WeightedEnsembleBaseline([ClassFrequencyBaseline(), EloLogisticBaseline()]).fit(
+        features, features["target_class"]
+    )
     proba = ensemble.predict_proba(features)
     assert proba.shape == (len(features), 3)
     np.testing.assert_allclose(proba.sum(axis=1), 1.0, atol=1e-9)
@@ -193,8 +194,13 @@ def test_temporal_split_is_ordered_by_date(features: pd.DataFrame) -> None:
 
 
 def test_save_metrics_roundtrip(tmp_path: Path) -> None:
-    path = save_metrics({"models": {"uniform_random": {"test": {"log_loss": 1.0}}}}, tmp_path / "m.json")
-    assert json.loads(path.read_text(encoding="utf-8"))["models"]["uniform_random"]["test"]["log_loss"] == 1.0
+    path = save_metrics(
+        {"models": {"uniform_random": {"test": {"log_loss": 1.0}}}}, tmp_path / "m.json"
+    )
+    assert (
+        json.loads(path.read_text(encoding="utf-8"))["models"]["uniform_random"]["test"]["log_loss"]
+        == 1.0
+    )
 
 
 # --- end-to-end through the training script ----------------------------------

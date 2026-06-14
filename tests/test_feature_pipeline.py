@@ -15,6 +15,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 import build_features as cli  # noqa: E402
+
 from worldcup.features.build_features import (  # noqa: E402
     LABEL_COLUMNS,
     ROLLING_FEATURE_COLUMNS,
@@ -34,7 +35,15 @@ def _write_matches(path: Path) -> int:
     ]
     df = pd.DataFrame(
         rows,
-        columns=["match_id", "date", "home_team", "away_team", "home_score", "away_score", "neutral"],
+        columns=[
+            "match_id",
+            "date",
+            "home_team",
+            "away_team",
+            "home_score",
+            "away_score",
+            "neutral",
+        ],
     )
     df["tournament"] = "Friendly"
     df.to_csv(path, index=False)
@@ -75,7 +84,16 @@ def test_pipeline_with_ratings(tmp_path: Path, caplog: pytest.LogCaptureFixture)
     _write_fifa(fifa_csv)
 
     rc = cli.main(
-        ["--matches", str(matches_csv), "--elo", str(elo_csv), "--fifa", str(fifa_csv), "--output", str(out_csv)]
+        [
+            "--matches",
+            str(matches_csv),
+            "--elo",
+            str(elo_csv),
+            "--fifa",
+            str(fifa_csv),
+            "--output",
+            str(out_csv),
+        ]
     )
     assert rc == 0
     assert out_csv.exists()
@@ -99,10 +117,14 @@ def test_pipeline_without_ratings_warns_and_succeeds(
     with caplog.at_level("WARNING"):
         rc = cli.main(
             [
-                "--matches", str(matches_csv),
-                "--elo", str(tmp_path / "nope_elo.csv"),
-                "--fifa", str(tmp_path / "nope_fifa.csv"),
-                "--output", str(out_csv),
+                "--matches",
+                str(matches_csv),
+                "--elo",
+                str(tmp_path / "nope_elo.csv"),
+                "--fifa",
+                str(tmp_path / "nope_fifa.csv"),
+                "--output",
+                str(out_csv),
             ]
         )
     assert rc == 0

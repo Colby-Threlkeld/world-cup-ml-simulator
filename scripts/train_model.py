@@ -125,30 +125,48 @@ def _log_summary(result: TrainingResult) -> None:
     cmp = result.metrics["comparison"]
     logger.info(
         "Main model (calibrated) test: log_loss=%.4f brier=%.4f acc=%.3f",
-        cal["log_loss"], cal["brier"], cal["accuracy"],
+        cal["log_loss"],
+        cal["brier"],
+        cal["accuracy"],
     )
     verdict = "BEATS" if cmp["beats_best_baseline"] else "does NOT beat"
     logger.info(
         "Main model %s best baseline on test log loss (%.4f vs %.4f).",
-        verdict, cmp["main_calibrated_test_log_loss"], cmp["best_baseline_test_log_loss"],
+        verdict,
+        cmp["main_calibrated_test_log_loss"],
+        cmp["best_baseline_test_log_loss"],
     )
 
 
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train the calibrated main model.")
     parser.add_argument(
-        "--features", type=Path, default=DEFAULT_FEATURES, help=f"feature CSV (default: {DEFAULT_FEATURES})"
+        "--features",
+        type=Path,
+        default=DEFAULT_FEATURES,
+        help=f"feature CSV (default: {DEFAULT_FEATURES})",
     )
     parser.add_argument(
-        "--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR, help=f"artifact dir (default: {DEFAULT_OUTPUT_DIR})"
+        "--output-dir",
+        type=Path,
+        default=DEFAULT_OUTPUT_DIR,
+        help=f"artifact dir (default: {DEFAULT_OUTPUT_DIR})",
     )
     parser.add_argument(
-        "--model-type", choices=["logistic", "gradient_boosting"], default=None, help="override main_model.type"
+        "--model-type",
+        choices=["logistic", "gradient_boosting"],
+        default=None,
+        help="override main_model.type",
     )
     parser.add_argument(
-        "--calibration", choices=["isotonic", "sigmoid", "none"], default=None, help="override calibration method"
+        "--calibration",
+        choices=["isotonic", "sigmoid", "none"],
+        default=None,
+        help="override calibration method",
     )
-    parser.add_argument("--sample", type=int, default=None, help="use only the first N matches (quick smoke)")
+    parser.add_argument(
+        "--sample", type=int, default=None, help="use only the first N matches (quick smoke)"
+    )
     parser.add_argument("-v", "--verbose", action="store_true", help="enable debug logging")
     return parser.parse_args(argv)
 

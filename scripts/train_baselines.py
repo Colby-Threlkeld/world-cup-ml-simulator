@@ -63,8 +63,11 @@ def main(argv: list[str] | None = None) -> int:
         )
         logger.info(
             "Temporal split: train=%d (%s..%s) val=%d test=%d",
-            len(train), train["date"].min().date(), train["date"].max().date(),
-            len(val), len(test),
+            len(train),
+            train["date"].min().date(),
+            train["date"].max().date(),
+            len(val),
+            len(test),
         )
 
         metrics = _train_and_score(train, val, test)
@@ -79,9 +82,7 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-def _train_and_score(
-    train: pd.DataFrame, val: pd.DataFrame, test: pd.DataFrame
-) -> dict:
+def _train_and_score(train: pd.DataFrame, val: pd.DataFrame, test: pd.DataFrame) -> dict:
     """Fit each available baseline and collect validation + test metrics."""
     y_train = train[TARGET_COLUMN]
     models = available_baselines(train)
@@ -146,20 +147,38 @@ def _log_leaderboard(metrics: dict) -> None:
     logger.info("Test-set leaderboard (by log loss):")
     for name, m in ranked:
         t = m["test"]
-        logger.info("  %-22s log_loss=%.4f brier=%.4f acc=%.3f", name, t["log_loss"], t["brier"], t["accuracy"])
+        logger.info(
+            "  %-22s log_loss=%.4f brier=%.4f acc=%.3f",
+            name,
+            t["log_loss"],
+            t["brier"],
+            t["accuracy"],
+        )
 
 
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train and score baseline models.")
     parser.add_argument(
-        "--features", type=Path, default=DEFAULT_FEATURES, help=f"feature CSV (default: {DEFAULT_FEATURES})"
+        "--features",
+        type=Path,
+        default=DEFAULT_FEATURES,
+        help=f"feature CSV (default: {DEFAULT_FEATURES})",
     )
     parser.add_argument(
-        "--output", type=Path, default=DEFAULT_OUTPUT, help=f"metrics JSON (default: {DEFAULT_OUTPUT})"
+        "--output",
+        type=Path,
+        default=DEFAULT_OUTPUT,
+        help=f"metrics JSON (default: {DEFAULT_OUTPUT})",
     )
-    parser.add_argument("--val-fraction", type=float, default=0.15, help="validation fraction (default: 0.15)")
-    parser.add_argument("--test-fraction", type=float, default=0.15, help="test fraction (default: 0.15)")
-    parser.add_argument("--sample", type=int, default=None, help="use only the first N matches (quick smoke)")
+    parser.add_argument(
+        "--val-fraction", type=float, default=0.15, help="validation fraction (default: 0.15)"
+    )
+    parser.add_argument(
+        "--test-fraction", type=float, default=0.15, help="test fraction (default: 0.15)"
+    )
+    parser.add_argument(
+        "--sample", type=int, default=None, help="use only the first N matches (quick smoke)"
+    )
     parser.add_argument("-v", "--verbose", action="store_true", help="enable debug logging")
     return parser.parse_args(argv)
 

@@ -112,7 +112,7 @@ class BaselineModel:
     #: Feature columns this model needs (empty for the prior-only baselines).
     features: tuple[str, ...] = ()
 
-    def fit(self, X: pd.DataFrame, y: pd.Series | np.ndarray) -> "BaselineModel":
+    def fit(self, X: pd.DataFrame, y: pd.Series | np.ndarray) -> BaselineModel:
         """Fit the model. Returns ``self`` for chaining."""
         raise NotImplementedError
 
@@ -130,10 +130,12 @@ class UniformBaseline(BaselineModel):
 
     name = "uniform_random"
 
-    def fit(self, X: pd.DataFrame, y: pd.Series | np.ndarray) -> "UniformBaseline":
+    def fit(self, X: pd.DataFrame, y: pd.Series | np.ndarray) -> UniformBaseline:
+        """Fit (a no-op for a fixed predictor); returns ``self``."""
         return self
 
     def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
+        """Return a flat ``1/3`` distribution for every row."""
         return np.full((len(X), _N_CLASSES), 1.0 / _N_CLASSES)
 
 
@@ -150,13 +152,15 @@ class ClassFrequencyBaseline(BaselineModel):
         """Args: alpha: Laplace smoothing added to each class count."""
         self.alpha = alpha
 
-    def fit(self, X: pd.DataFrame, y: pd.Series | np.ndarray) -> "ClassFrequencyBaseline":
+    def fit(self, X: pd.DataFrame, y: pd.Series | np.ndarray) -> ClassFrequencyBaseline:
+        """Learn the smoothed class priors from the labels ``y``."""
         counts = pd.Series(np.asarray(y)).value_counts()
         smoothed = np.array([counts.get(c, 0) + self.alpha for c in CLASS_ORDER], dtype=float)
         self.prior_ = smoothed / smoothed.sum()
         return self
 
     def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
+        """Return the learned class prior, repeated for every row."""
         return np.tile(self.prior_, (len(X), 1))
 
 
@@ -173,7 +177,7 @@ class _LogisticBaseline(BaselineModel):
         self.name = name
         self.C = C
 
-    def fit(self, X: pd.DataFrame, y: pd.Series | np.ndarray) -> "_LogisticBaseline":
+    def fit(self, X: pd.DataFrame, y: pd.Series | np.ndarray) -> _LogisticBaseline:
         missing = self.missing_features(X)
         if missing:
             raise FeatureUnavailableError(
@@ -229,7 +233,9 @@ class WeightedEnsembleBaseline(BaselineModel):
         models: Iterable[BaselineModel],
         weights: Sequence[float] | None = None,
     ) -> None:
-        """Args:
+        """Build the ensemble from member baselines and optional weights.
+
+        Args:
             models: The member baselines to average. Fitted by :meth:`fit`.
             weights: Per-model weights (default: equal). Normalized to sum to 1.
         """
@@ -238,7 +244,8 @@ class WeightedEnsembleBaseline(BaselineModel):
             raise ValueError("WeightedEnsembleBaseline needs at least one member model")
         self.weights = weights
 
-    def fit(self, X: pd.DataFrame, y: pd.Series | np.ndarray) -> "WeightedEnsembleBaseline":
+    def fit(self, X: pd.DataFrame, y: pd.Series | np.ndarray) -> WeightedEnsembleBaseline:
+        """Fit every member baseline, then normalize the blend weights."""
         for model in self.models:
             model.fit(X, y)
         raw = (
@@ -252,6 +259,7 @@ class WeightedEnsembleBaseline(BaselineModel):
         return self
 
     def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
+        """Return the weighted, renormalized blend of member probabilities."""
         stacked = np.stack([m.predict_proba(X) for m in self.models])  # (k, n, 3)
         blended = np.tensordot(self.weights_, stacked, axes=([0], [0]))  # (n, 3)
         return _clip_normalize(blended)
@@ -286,9 +294,7 @@ def available_baselines(X: pd.DataFrame) -> dict[str, BaselineModel]:
     for model in feature_models:
         missing = model.missing_features(X)
         if missing:
-            logger.warning(
-                "Skipping %s baseline: missing feature(s) %s", model.name, missing
-            )
+            logger.warning("Skipping %s baseline: missing feature(s) %s", model.name, missing)
             continue
         models[model.name] = model
         survivors.append(model)

@@ -295,8 +295,13 @@ def page_backtesting() -> None:
 
     st.subheader("Did we fancy the eventual champion?")
     win_cols = [
-        "tournament", "champion", "champion_predicted_rank", "n_participants",
-        "champion_in_top_3", "champion_in_top_5", "champion_in_top_10",
+        "tournament",
+        "champion",
+        "champion_predicted_rank",
+        "n_participants",
+        "champion_in_top_3",
+        "champion_in_top_5",
+        "champion_in_top_10",
     ]
     st.dataframe(tdf[[c for c in win_cols if c in tdf]], width="stretch", hide_index=True)
     st.caption(

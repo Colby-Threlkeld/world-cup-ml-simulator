@@ -64,7 +64,9 @@ def test_predict_must_return_valid_probabilities() -> None:
 
 def test_build_group_table_each_team_plays_three() -> None:
     rng = np.random.default_rng(7)
-    table = {s.team: s for s in build_group_table(_TEAMS, _FIXTURES, _fixed_predict(0.4, 0.2, 0.4), rng)}
+    table = {
+        s.team: s for s in build_group_table(_TEAMS, _FIXTURES, _fixed_predict(0.4, 0.2, 0.4), rng)
+    }
     assert set(table) == set(_TEAMS)
     for standing in table.values():
         assert standing.played == 3
@@ -77,7 +79,9 @@ def test_build_group_table_each_team_plays_three() -> None:
 
 def test_home_team_always_wins_table_when_home_win_certain() -> None:
     rng = np.random.default_rng(3)
-    table = {s.team: s for s in build_group_table(_TEAMS, _FIXTURES, _fixed_predict(1.0, 0.0, 0.0), rng)}
+    table = {
+        s.team: s for s in build_group_table(_TEAMS, _FIXTURES, _fixed_predict(1.0, 0.0, 0.0), rng)
+    }
     # A is home in all 3 of its fixtures -> 9 points; D is home twice -> >= 6.
     assert table["A"].points == 9
     assert table["A"].won == 3
@@ -88,7 +92,9 @@ def test_home_team_always_wins_table_when_home_win_certain() -> None:
 
 def test_points_dominate_goal_difference() -> None:
     rng = np.random.default_rng(0)
-    more_points = TeamStanding(team="X", won=1, drawn=1, goals_for=1, goals_against=0)  # 4 pts, GD +1
+    more_points = TeamStanding(
+        team="X", won=1, drawn=1, goals_for=1, goals_against=0
+    )  # 4 pts, GD +1
     fewer_points = TeamStanding(team="Y", won=1, goals_for=9, goals_against=0)  # 3 pts, GD +9
     ranked = rank_group([fewer_points, more_points], rng)
     assert [s.team for s in ranked] == ["X", "Y"]
@@ -103,7 +109,9 @@ def test_goal_difference_breaks_equal_points() -> None:
 
 def test_goals_for_breaks_equal_points_and_gd() -> None:
     rng = np.random.default_rng(0)
-    fewer = TeamStanding(team="X", won=1, drawn=0, lost=1, goals_for=2, goals_against=1)  # GD+1, GF2
+    fewer = TeamStanding(
+        team="X", won=1, drawn=0, lost=1, goals_for=2, goals_against=1
+    )  # GD+1, GF2
     more = TeamStanding(team="Y", won=1, drawn=0, lost=1, goals_for=4, goals_against=3)  # GD+1, GF4
     assert [s.team for s in rank_group([fewer, more], rng)] == ["Y", "X"]
 
@@ -123,7 +131,9 @@ def test_random_fallback_is_seed_reproducible() -> None:
 def test_random_fallback_can_differ_across_seeds() -> None:
     a = TeamStanding(team="A", won=1, goals_for=2, goals_against=1)
     b = TeamStanding(team="B", won=1, goals_for=2, goals_against=1)
-    orders = {tuple(s.team for s in rank_group([a, b], np.random.default_rng(seed))) for seed in range(20)}
+    orders = {
+        tuple(s.team for s in rank_group([a, b], np.random.default_rng(seed))) for seed in range(20)
+    }
     assert len(orders) == 2  # both orderings appear across seeds
 
 

@@ -87,9 +87,7 @@ def add_rating_features(
     """
     missing = [c for c in _REQUIRED_MODEL_COLS if c not in model_df.columns]
     if missing:
-        raise DataValidationError(
-            f"model_df missing columns for rating features: {missing}"
-        )
+        raise DataValidationError(f"model_df missing columns for rating features: {missing}")
 
     out = model_df.copy()
     date_cols: list[str] = []
@@ -116,9 +114,7 @@ def add_rating_features(
 
 def _join_elo(model_df: pd.DataFrame, elo_ratings: pd.DataFrame) -> pd.DataFrame:
     """As-of join Elo onto both sides; adds value + (internal) snapshot date."""
-    ratings = _prepare_ratings(
-        elo_ratings, required=("team", "date", "elo"), date_col="date"
-    )
+    ratings = _prepare_ratings(elo_ratings, required=("team", "date", "elo"), date_col="date")
     out = model_df
     for side in ("a", "b"):
         out = _asof_join_side(

@@ -117,10 +117,16 @@ def _load_inputs(model_dir: Path) -> tuple[dict, pd.DataFrame]:
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate the model evaluation report.")
     parser.add_argument(
-        "--model-dir", type=Path, default=DEFAULT_MODEL_DIR, help=f"training artifacts (default: {DEFAULT_MODEL_DIR})"
+        "--model-dir",
+        type=Path,
+        default=DEFAULT_MODEL_DIR,
+        help=f"training artifacts (default: {DEFAULT_MODEL_DIR})",
     )
     parser.add_argument(
-        "--output-dir", type=Path, default=REPORTS_DIR, help=f"report output dir (default: {REPORTS_DIR})"
+        "--output-dir",
+        type=Path,
+        default=REPORTS_DIR,
+        help=f"report output dir (default: {REPORTS_DIR})",
     )
     parser.add_argument("-v", "--verbose", action="store_true", help="enable debug logging")
     return parser.parse_args(argv)

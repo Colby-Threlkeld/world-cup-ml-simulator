@@ -52,7 +52,9 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     if not args.matches.exists():
-        logger.error("matches file not found: %s (run scripts/build_matches.py first)", args.matches)
+        logger.error(
+            "matches file not found: %s (run scripts/build_matches.py first)", args.matches
+        )
         return 1
 
     logger.info("Building features from %s", args.matches)
@@ -79,8 +81,13 @@ def main(argv: list[str] | None = None) -> int:
     for row in report["tournaments"]:
         logger.info(
             "%s: log_loss=%.4f acc=%.3f | %s ranked %s/%s (top5=%s)",
-            row["tournament"], row["log_loss"], row["accuracy"], row["champion"],
-            row["champion_predicted_rank"], row["n_participants"], row["champion_in_top_5"],
+            row["tournament"],
+            row["log_loss"],
+            row["accuracy"],
+            row["champion"],
+            row["champion_predicted_rank"],
+            row["n_participants"],
+            row["champion_in_top_5"],
         )
     logger.info("Wrote report -> %s and artifacts -> %s", args.report, args.output_dir)
     logger.info("%s finished in %.2fs", "backtest", time.perf_counter() - t0)
@@ -90,13 +97,22 @@ def main(argv: list[str] | None = None) -> int:
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Backtest the model against past World Cups.")
     parser.add_argument(
-        "--matches", type=Path, default=DEFAULT_MATCHES, help=f"cleaned matches (default: {DEFAULT_MATCHES})"
+        "--matches",
+        type=Path,
+        default=DEFAULT_MATCHES,
+        help=f"cleaned matches (default: {DEFAULT_MATCHES})",
     )
     parser.add_argument(
-        "--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR, help=f"artifacts dir (default: {DEFAULT_OUTPUT_DIR})"
+        "--output-dir",
+        type=Path,
+        default=DEFAULT_OUTPUT_DIR,
+        help=f"artifacts dir (default: {DEFAULT_OUTPUT_DIR})",
     )
     parser.add_argument(
-        "--report", type=Path, default=DEFAULT_REPORT, help=f"report path (default: {DEFAULT_REPORT})"
+        "--report",
+        type=Path,
+        default=DEFAULT_REPORT,
+        help=f"report path (default: {DEFAULT_REPORT})",
     )
     parser.add_argument("-v", "--verbose", action="store_true", help="enable debug logging")
     return parser.parse_args(argv)

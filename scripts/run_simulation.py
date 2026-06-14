@@ -61,7 +61,10 @@ def main(argv: list[str] | None = None) -> int:
     """Run the simulation and write outputs. Returns a process exit code."""
     parser = argparse.ArgumentParser(description="Run the Monte Carlo World Cup simulation.")
     parser.add_argument(
-        "--simulations", "-n", type=int, default=FULL_SIMULATIONS,
+        "--simulations",
+        "-n",
+        type=int,
+        default=FULL_SIMULATIONS,
         help=f"number of simulations (default {FULL_SIMULATIONS})",
     )
     parser.add_argument(
@@ -69,7 +72,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--seed", type=int, default=RANDOM_SEED, help="random seed")
     parser.add_argument(
-        "--strengths", type=Path, default=None,
+        "--strengths",
+        type=Path,
+        default=None,
         help="optional cached CSV (team,strength); without it, a uniform predictor is used",
     )
     parser.add_argument("--config", type=Path, default=None, help="tournament config YAML")

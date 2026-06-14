@@ -38,6 +38,7 @@ dev = [
   "mypy>=1.10",
   "types-PyYAML",
   "pandas-stubs",
+  "pre-commit>=3.5",        # local quality-gate hooks (mirrors CI)
   "streamlit>=1.33",        # so `make app` works after `make install`
 ]
 
@@ -56,10 +57,15 @@ src = ["src", "tests"]
 # E/F: pyflakes+pycodestyle, I: import sort, B: bugbear, UP: pyupgrade,
 # N: naming, SIM: simplify, D: docstrings.
 select = ["E", "F", "I", "B", "UP", "N", "SIM", "D"]
-ignore = ["D203", "D213"]  # mutually exclusive with D211/D212 — pick one of each pair.
+ignore = [
+  "D203", "D213",  # mutually exclusive with D211/D212 — pick one of each pair.
+  "N803", "N806",  # ML convention: `X`, `y`, `X_train` for feature matrices/targets.
+  "D107",          # __init__ args are documented in the class docstring (Google style).
+]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["D"]       # tests document themselves via names.
+"tests/*" = ["D", "E501", "B905"]   # tests document themselves; long fixtures are fine.
+"scripts/*" = ["E501"]              # argparse help strings are naturally long.
 "notebooks/*" = ["D"]
 "app/*" = ["D"]
 

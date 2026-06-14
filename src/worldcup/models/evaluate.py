@@ -124,9 +124,7 @@ def evaluate_proba(
     labels = list(classes)
     y = np.asarray(y_true)
     if proba.shape != (len(y), len(labels)):
-        raise ValueError(
-            f"proba shape {proba.shape} does not match (n={len(y)}, k={len(labels)})"
-        )
+        raise ValueError(f"proba shape {proba.shape} does not match (n={len(y)}, k={len(labels)})")
     unexpected = set(np.unique(y)) - set(labels)
     if unexpected:
         raise ValueError(f"y_true contains labels outside {labels}: {sorted(unexpected)}")
@@ -317,7 +315,10 @@ def metrics_summary_frame(metrics: dict) -> pd.DataFrame:
     rows.append({"model": "main_model (calibrated)", **_metric_cols(main_test)})
     if "base" in metrics["main_model"]["test"]:
         rows.append(
-            {"model": "main_model (uncalibrated)", **_metric_cols(metrics["main_model"]["test"]["base"])}
+            {
+                "model": "main_model (uncalibrated)",
+                **_metric_cols(metrics["main_model"]["test"]["base"]),
+            }
         )
     for name, entry in metrics.get("baselines", {}).items():
         rows.append({"model": name, **_metric_cols(entry["test"])})
@@ -355,9 +356,7 @@ def render_evaluation_markdown(
     cmp = metrics.get("comparison", {})
     cal_err = metrics["main_model"].get("test_calibration_error", {})
     n_test = metrics["main_model"]["test"]["calibrated"].get("n", len(predictions))
-    verdict = (
-        "edges ahead of" if cmp.get("beats_best_baseline") else "does not beat"
-    )
+    verdict = "edges ahead of" if cmp.get("beats_best_baseline") else "does not beat"
 
     lines: list[str] = []
     lines.append("# Model Evaluation Report")
@@ -391,12 +390,10 @@ def render_evaluation_markdown(
 
     lines.append("## Baseline comparison")
     lines.append("")
-    lines.append(
-        f"- Main model (calibrated) test log loss: **{cmp.get('main_calibrated_test_log_loss', float('nan')):.4f}**"
-    )
-    lines.append(
-        f"- Best baseline test log loss: **{cmp.get('best_baseline_test_log_loss', float('nan')):.4f}**"
-    )
+    main_ll = cmp.get("main_calibrated_test_log_loss", float("nan"))
+    base_ll = cmp.get("best_baseline_test_log_loss", float("nan"))
+    lines.append(f"- Main model (calibrated) test log loss: **{main_ll:.4f}**")
+    lines.append(f"- Best baseline test log loss: **{base_ll:.4f}**")
     lines.append(
         "- A baseline that beats your model is a useful result too: it tells you the "
         "fancy features are not pulling their weight yet."
@@ -406,9 +403,11 @@ def render_evaluation_markdown(
     lines.append("## Calibration")
     lines.append("")
     if cal_err:
+        base_ece = cal_err.get("base", float("nan"))
+        cal_ece = cal_err.get("calibrated", float("nan"))
         lines.append(
-            f"Expected Calibration Error on the test set: **{cal_err.get('base', float('nan')):.4f}** "
-            f"before calibration → **{cal_err.get('calibrated', float('nan')):.4f}** after "
+            f"Expected Calibration Error on the test set: **{base_ece:.4f}** "
+            f"before calibration → **{cal_ece:.4f}** after "
             f"({metrics.get('calibration_method', 'n/a')} scaling). Lower is better."
         )
         lines.append("")
@@ -424,7 +423,9 @@ def render_evaluation_markdown(
     lines.append("")
     lines.append(f"![Confusion matrix]({confusion_figure})")
     lines.append("")
-    lines.append(_frame_to_markdown(confusion_matrix_frame(y_true, y_pred, classes=labels).reset_index()))
+    lines.append(
+        _frame_to_markdown(confusion_matrix_frame(y_true, y_pred, classes=labels).reset_index())
+    )
     lines.append("")
     lines.append(
         "*Rows are what actually happened, columns are what the model predicted. Draws "
@@ -434,7 +435,9 @@ def render_evaluation_markdown(
 
     lines.append("## Class-level performance")
     lines.append("")
-    lines.append(_frame_to_markdown(class_performance_frame(y_true, y_pred, classes=labels), floatfmt=3))
+    lines.append(
+        _frame_to_markdown(class_performance_frame(y_true, y_pred, classes=labels), floatfmt=3)
+    )
     lines.append("")
 
     lines.append("## Caveats")
@@ -464,9 +467,7 @@ def save_metrics(metrics: dict, path: Path | str) -> Path:
     """
     out_path = Path(path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(
-        json.dumps(metrics, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    out_path.write_text(json.dumps(metrics, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return out_path
 
 

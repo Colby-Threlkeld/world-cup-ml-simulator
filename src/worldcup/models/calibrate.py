@@ -60,9 +60,7 @@ def fit_calibrated_model(
         raise ValueError(f"method must be one of {CALIBRATION_METHODS}, got {method!r}")
     if method == "none":
         return estimator
-    return ProbabilityCalibrator(estimator, method=method, classes=list(classes)).fit(
-        X_val, y_val
-    )
+    return ProbabilityCalibrator(estimator, method=method, classes=list(classes)).fit(X_val, y_val)
 
 
 class ProbabilityCalibrator(ClassifierMixin, BaseEstimator):
@@ -85,7 +83,8 @@ class ProbabilityCalibrator(ClassifierMixin, BaseEstimator):
         self.method = method
         self.classes = classes
 
-    def fit(self, X: pd.DataFrame, y: pd.Series | np.ndarray) -> "ProbabilityCalibrator":
+    def fit(self, X: pd.DataFrame, y: pd.Series | np.ndarray) -> ProbabilityCalibrator:
+        """Fit a per-class calibrator on the wrapped estimator's validation output."""
         order = list(self.classes) if self.classes is not None else list(TARGET_CLASSES)
         self.classes_ = np.asarray(order)
         proba = _proba_in_order(self.estimator, X, order)
@@ -97,14 +96,14 @@ class ProbabilityCalibrator(ClassifierMixin, BaseEstimator):
         return self
 
     def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
+        """Return calibrated, renormalized class probabilities in class order."""
         proba = _proba_in_order(self.estimator, X, list(self.classes_))
-        out = np.column_stack(
-            [cal.predict(proba[:, k]) for k, cal in enumerate(self.calibrators_)]
-        )
+        out = np.column_stack([cal.predict(proba[:, k]) for k, cal in enumerate(self.calibrators_)])
         out = np.clip(out, _PROBA_EPS, None)
         return out / out.sum(axis=1, keepdims=True)
 
     def predict(self, X: pd.DataFrame) -> np.ndarray:
+        """Return the argmax calibrated class label per row."""
         return self.classes_[self.predict_proba(X).argmax(axis=1)]
 
 
@@ -160,7 +159,7 @@ class _Calibrator1D:
     def __init__(self, method: str = "isotonic") -> None:
         self.method = method
 
-    def fit(self, scores: np.ndarray, target: np.ndarray) -> "_Calibrator1D":
+    def fit(self, scores: np.ndarray, target: np.ndarray) -> _Calibrator1D:
         scores = np.asarray(scores, dtype=float)
         target = np.asarray(target, dtype=float)
         if np.unique(target).size < 2:
@@ -169,9 +168,9 @@ class _Calibrator1D:
             return self
         self.constant_ = None
         if self.method == "isotonic":
-            self.model_ = IsotonicRegression(
-                y_min=0.0, y_max=1.0, out_of_bounds="clip"
-            ).fit(scores, target)
+            self.model_ = IsotonicRegression(y_min=0.0, y_max=1.0, out_of_bounds="clip").fit(
+                scores, target
+            )
         else:  # sigmoid / Platt scaling on the single probability score
             self.model_ = LogisticRegression().fit(scores.reshape(-1, 1), target)
         return self
