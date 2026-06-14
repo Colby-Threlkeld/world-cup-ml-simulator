@@ -22,6 +22,7 @@ from worldcup.data.clean_data import (
     TEAM_A_RESULTS,
 )
 from worldcup.data.validate_data import DataValidationError
+from worldcup.features.rolling_features import add_rolling_features
 
 # Column order of the Team A vs Team B model dataset.
 MODEL_DATASET_COLUMNS: tuple[str, ...] = (
@@ -110,19 +111,21 @@ def build_model_dataset(matches: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_feature_matrix(matches: pd.DataFrame) -> pd.DataFrame:
-    """Build the model-ready feature matrix from cleaned matches.
+    """Build the leakage-safe, model-ready feature matrix from cleaned matches.
 
-    TODO(slice 3): start from :func:`build_model_dataset`, then join Elo, rolling
-    form, rest days, and FIFA ranking — each computed as-of the match date — with
-    no post-kickoff information.
+    Reshapes to the Team A vs Team B model dataset, then attaches leakage-safe
+    rolling team-form features (as-of the match date) for both sides plus their
+    difference features. Elo and FIFA-ranking features arrive in later slices.
 
     Args:
-        matches: Cleaned match table.
+        matches: Cleaned matches table from
+            :func:`worldcup.data.clean_data.clean_matches`.
 
     Returns:
-        One row per match with features and labels, free of leakage.
+        One row per match: the model dataset + rolling features (``*_a``/``*_b``)
+        + difference features, with no post-kickoff information.
     """
-    raise NotImplementedError("build_feature_matrix is implemented in slice 3.")
+    return add_rolling_features(build_model_dataset(matches))
 
 
 def _host_country(matches: pd.DataFrame) -> object:
