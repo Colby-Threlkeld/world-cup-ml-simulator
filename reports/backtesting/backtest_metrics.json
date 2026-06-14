@@ -1,0 +1,60 @@
+{
+  "aggregate": {
+    "champion_top_5_rate": 1.0,
+    "mean_accuracy": 0.5729,
+    "mean_brier": 0.5705,
+    "mean_calibration_error": 0.0885,
+    "mean_log_loss": 0.9675,
+    "n_tournaments": 3
+  },
+  "tournaments": [
+    {
+      "accuracy": 0.625,
+      "brier": 0.5428,
+      "calibration_error": 0.1191,
+      "champion": "Germany",
+      "champion_in_top_10": true,
+      "champion_in_top_3": false,
+      "champion_in_top_5": true,
+      "champion_predicted_rank": 4,
+      "log_loss": 0.9232,
+      "n_participants": 32,
+      "n_test": 64,
+      "n_train": 37861,
+      "tournament": "2014 World Cup",
+      "winner_rank_basis": "elo_favourite"
+    },
+    {
+      "accuracy": 0.5625,
+      "brier": 0.5632,
+      "calibration_error": 0.0214,
+      "champion": "France",
+      "champion_in_top_10": true,
+      "champion_in_top_3": false,
+      "champion_in_top_5": true,
+      "champion_predicted_rank": 5,
+      "log_loss": 0.9516,
+      "n_participants": 32,
+      "n_test": 64,
+      "n_train": 41639,
+      "tournament": "2018 World Cup",
+      "winner_rank_basis": "elo_favourite"
+    },
+    {
+      "accuracy": 0.5312,
+      "brier": 0.6054,
+      "calibration_error": 0.1248,
+      "champion": "Argentina",
+      "champion_in_top_10": true,
+      "champion_in_top_3": true,
+      "champion_in_top_5": true,
+      "champion_predicted_rank": 2,
+      "log_loss": 1.0276,
+      "n_participants": 32,
+      "n_test": 64,
+      "n_train": 45700,
+      "tournament": "2022 World Cup",
+      "winner_rank_basis": "elo_favourite"
+    }
+  ]
+}
