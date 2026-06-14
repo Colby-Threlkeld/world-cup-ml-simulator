@@ -407,9 +407,3 @@ reports/               # generated metrics JSON, figures, and Markdown reports
 tests/                 # 251-test pytest suite (incl. a leakage test per feature)
 data/{raw,interim,processed}/   # gitignored; datasets are downloaded locally
 ```
-
-## License
-
-[MIT](LICENSE) © Colby Threlkeld. Match data is from the
-[martj42/international_results](https://github.com/martj42/international_results)
-dataset under its own license.
