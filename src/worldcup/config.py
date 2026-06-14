@@ -19,6 +19,9 @@ RAW_DIR = DATA_DIR / "raw"
 INTERIM_DIR = DATA_DIR / "interim"
 PROCESSED_DIR = DATA_DIR / "processed"
 CONFIGS_DIR = PROJECT_ROOT / "configs"
+# Tracked, human-readable run artifacts (metrics JSON, plots). Unlike data/, this
+# is committable — baseline scores are the "number to beat" for later models.
+REPORTS_DIR = PROJECT_ROOT / "reports"
 
 # Single source of truth for reproducibility. Pass this into every RNG.
 RANDOM_SEED = 42
