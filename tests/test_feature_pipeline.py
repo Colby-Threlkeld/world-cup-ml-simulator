@@ -22,7 +22,11 @@ from worldcup.features.build_features import (  # noqa: E402
     load_matches,
     validate_feature_matrix,
 )
-from worldcup.features.rating_features import RATING_FEATURES  # noqa: E402
+from worldcup.features.rating_features import (  # noqa: E402
+    ELO_FEATURES,
+    FIFA_FEATURES,
+    RATING_FEATURES,
+)
 
 
 def _write_matches(path: Path) -> int:
@@ -130,11 +134,48 @@ def test_pipeline_without_ratings_warns_and_succeeds(
     assert rc == 0
     feats = pd.read_csv(out_csv)
     assert len(feats) == n
-    # Rolling features present; rating features absent (no source supplied).
+    # Rolling features present; Elo is attached from the leakage-safe walk-forward
+    # even with no external snapshot (it is the primary strength signal). FIFA
+    # features still require a source file, so they stay absent.
     assert "form_5_diff" in feats.columns
-    for col in RATING_FEATURES:
+    for col in ELO_FEATURES:
+        assert col in feats.columns
+    for col in FIFA_FEATURES:
         assert col not in feats.columns
     assert any("not found" in m for m in caplog.messages)
+
+
+def test_pipeline_attaches_leakage_safe_walk_forward_elo(tmp_path: Path) -> None:
+    # With no external Elo file the pipeline attaches a walk-forward Elo. The very
+    # first match (both teams unseen) starts level, so elo_diff == 0 — proof the
+    # rating reflects only prior matches, never the match's own result.
+    matches_csv = tmp_path / "matches.csv"
+    out_csv = tmp_path / "features.csv"
+    _write_matches(matches_csv)
+
+    rc = cli.main(
+        [
+            "--matches",
+            str(matches_csv),
+            "--elo",
+            str(tmp_path / "nope_elo.csv"),
+            "--fifa",
+            str(tmp_path / "nope_fifa.csv"),
+            "--output",
+            str(out_csv),
+        ]
+    )
+    assert rc == 0
+
+    feats = pd.read_csv(out_csv).set_index("match_id").sort_index()
+    assert {"team_a_elo", "team_b_elo", "elo_diff"} <= set(feats.columns)
+    # match 0 is the earliest fixture; both teams enter at the base rating.
+    assert feats.loc[0, "elo_diff"] == 0.0
+    # Later matches must carry a real Elo signal once results have accrued.
+    assert float(feats["elo_diff"].abs().sum()) > 0.0
+    for col in RATING_FEATURES:
+        if col in ELO_FEATURES:
+            assert col in feats.columns
 
 
 def test_missing_matches_file_returns_error_code(tmp_path: Path) -> None:

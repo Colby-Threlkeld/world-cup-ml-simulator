@@ -1,12 +1,16 @@
 """CLI: build the model-ready feature table from cleaned matches (+ ratings).
 
 Loads the cleaned matches, reshapes them to the Team A vs Team B model dataset,
-attaches leakage-safe rolling form features, and — when the optional Elo / FIFA
-rating files are present — joins their as-of rating features on top. The result
-is validated and written to ``data/processed/features.csv``.
+attaches leakage-safe rolling form features, and joins as-of rating features on
+top. Self-computed Elo (the primary strength signal) is always attached: from an
+external snapshot when ``--elo`` is supplied, otherwise from a leakage-safe
+walk-forward over the match history itself. FIFA-ranking features are added only
+when ``--fifa`` is supplied. The result is validated and written to
+``data/processed/features.csv``.
 
-The optional rating files are *optional*: if they are missing the script logs a
-clear warning and continues with the rolling features only (it never crashes).
+The external rating files are *optional*: if they are missing the script logs a
+clear warning and continues (Elo still comes from the walk-forward; it never
+crashes).
 
 Usage::
 
@@ -34,6 +38,7 @@ from worldcup.config import INTERIM_DIR, PROCESSED_DIR  # noqa: E402
 from worldcup.data.validate_data import DataValidationError  # noqa: E402
 from worldcup.features.build_features import (  # noqa: E402
     DEFAULT_FEATURES_PATH,
+    attach_elo_features,
     build_feature_matrix,
     load_matches,
     load_optional_ratings,
@@ -83,6 +88,12 @@ def main(argv: list[str] | None = None) -> int:
             fifa = load_optional_ratings(args.fifa, date_col="rank_date", label="FIFA rankings")
 
             features = build_feature_matrix(matches, elo_ratings=elo, fifa_rankings=fifa)
+            # The primary strength signal is self-computed Elo. When no external Elo
+            # snapshot is supplied, attach the leakage-safe walk-forward Elo here so
+            # the main model trains on it (otherwise elo_diff is silently dropped).
+            if "elo_diff" not in features.columns:
+                features = attach_elo_features(features)
+                logger.info("Attached walk-forward Elo (team_a_elo/team_b_elo/elo_diff).")
             validate_feature_matrix(features, expected_rows=len(matches))
             _log_summary(features)
             out_path = save_features(features, args.output)

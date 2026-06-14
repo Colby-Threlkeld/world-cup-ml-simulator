@@ -172,6 +172,33 @@ def build_feature_matrix(
     return feats.sort_values("match_id", kind="stable").reset_index(drop=True)
 
 
+def attach_elo_features(features: pd.DataFrame) -> pd.DataFrame:
+    """Attach the leakage-safe walk-forward Elo (``team_a_elo``/``team_b_elo``/``elo_diff``).
+
+    Elo is computed by walking the matches in date order and recording each team's
+    rating **before** each match (see
+    :func:`worldcup.backtesting.add_elo_features`), so a match never sees its own
+    result — it is safe to add before the temporal split. This is the project's
+    primary strength signal; the feature-build CLI attaches it whenever no external
+    Elo snapshot is supplied, so the main model actually trains on it.
+
+    The dependency on :mod:`worldcup.backtesting` is imported lazily so this module
+    stays free of the heavier modeling deps unless Elo is actually requested.
+
+    Args:
+        features: A feature matrix carrying ``date``, ``team_a``, ``team_b``,
+            ``team_a_score``, ``team_b_score`` (e.g. from
+            :func:`build_feature_matrix`). Not mutated.
+
+    Returns:
+        A copy of ``features`` with the three Elo columns added, in the same row
+        order (``match_id`` ascending).
+    """
+    from worldcup.backtesting import add_elo_features  # local import: heavier deps
+
+    return add_elo_features(features)
+
+
 def _host_country(matches: pd.DataFrame) -> object:
     """Return the venue/host country column if available, else NA (broadcast)."""
     if "venue_country" in matches.columns:

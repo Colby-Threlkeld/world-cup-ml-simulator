@@ -15,16 +15,27 @@ estimate each nation's title odds — all judged against honest baselines and
 An interactive **Streamlit dashboard** ties it together: explore team strengths,
 predict any match-up, browse simulated title odds, and read the backtest.
 
+> **Status note:** the official 2026 group draw isn't encoded yet, so the shipped
+> tournament simulation runs over **placeholder slots** with a uniform predictor —
+> its title odds reflect bracket *structure* only, not a team-specific forecast.
+> Supplying a real per-team strength table (`--strengths`) and the drawn groups
+> turns it into a true forecast. The match model, Elo ratings, and backtest above
+> are real today.
+
 ## Highlights
 
 - **Leakage-safe by construction** — every feature is computed *as of kickoff*
   from prior matches only; all evaluation splits are temporal, never random.
 - **Calibrated probabilities, not vibes** — a multinomial-logistic match model
-  with isotonic/Platt calibration and reliability diagnostics.
-- **Honest backtest** — trained only on pre-tournament data, the system ranked
-  every eventual champion (Germany '14, France '18, Argentina '22) in its
-  pre-tournament **top 5**, with mean log loss **0.97** vs **1.10** for an
-  uninformed model.
+  over a self-computed **Elo** difference plus rolling form, with isotonic/Platt
+  calibration. On a temporal hold-out it scores **0.867 log loss / 60.8% accuracy**,
+  edging the strongest baseline (Elo-only, 0.877) and well clear of an uninformed
+  model (1.10).
+- **Honest backtest** — trained only on pre-tournament data, the pre-tournament
+  **Elo favourite ordering** placed every eventual champion (Germany '14, France
+  '18, Argentina '22) in its **top 5**, with mean match log loss **0.97** vs
+  **1.10** for an uninformed model. (That rank is the Elo ordering — a proxy for a
+  full winner-probability simulation, not the simulation itself.)
 - **Reproducible** — everything is seeded; 1,000 tournament simulations run in
   ~3s on 2 CPU cores. No GPU, tiny data.
 - **No fabricated numbers** — if an output hasn't been generated, the app and

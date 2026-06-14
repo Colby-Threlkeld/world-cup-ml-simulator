@@ -119,7 +119,11 @@ fixtures:
   - {group: L, matchday: 3, home: L1, away: L4}
   - {group: L, matchday: 3, home: L2, away: L3}
 
-# Group-stage tiebreakers, applied IN ORDER (FIFA 2026 regulations).
+# Group-stage tiebreakers in official FIFA 2026 order. NOTE: the Monte-Carlo ranker
+# (worldcup.simulation.tiebreakers.rank_group) currently applies the PRIMARY criteria
+# only -- points -> goal_difference -> goals_for -> drawing_of_lots. The head-to-head
+# and fair-play steps are listed here for fidelity but are NOT yet implemented (TODO);
+# a tie still level after goals_for falls straight through to a seeded random draw.
 tiebreakers:
   - points
   - goal_difference

@@ -37,10 +37,11 @@ main_model:
   n_estimators: 300
   l2_regularization: 1.0
 
-# Slice 4 -- Poisson goals model.
+# Slice 4 -- Poisson goals model. NOT IMPLEMENTED / UNUSED: the shipped match model
+# is the multinomial-logistic `main_model` above. This block is a placeholder for a
+# possible future Poisson scoreline-grid model and is read by nothing today.
 poisson:
-  max_goals: 10        # truncate the scoreline grid at this many goals per team.
-  # TODO(slice 4): regularization, feature list, train window.
+  max_goals: 10        # (unused) would truncate a scoreline grid at this many goals.
 
 # Slice 5 -- probability calibration.
 calibration:

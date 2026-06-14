@@ -8,6 +8,14 @@
         "n": 7411
       }
     },
+    "elo_logistic": {
+      "test": {
+        "accuracy": 0.6011334502766158,
+        "brier": 0.5159526273381067,
+        "log_loss": 0.8766778638245132,
+        "n": 7411
+      }
+    },
     "recent_form_logistic": {
       "test": {
         "accuracy": 0.5459452165699635,
@@ -26,9 +34,9 @@
     },
     "weighted_ensemble": {
       "test": {
-        "accuracy": 0.5185535015517474,
-        "brier": 0.5917245422931456,
-        "log_loss": 0.9934855018589873,
+        "accuracy": 0.5759006881662394,
+        "brier": 0.550528027753489,
+        "log_loss": 0.9359622769023583,
         "n": 7411
       }
     }
@@ -41,8 +49,8 @@
   ],
   "comparison": {
     "beats_best_baseline": true,
-    "best_baseline_test_log_loss": 0.9636815427724319,
-    "main_calibrated_test_log_loss": 0.9583237877026517
+    "best_baseline_test_log_loss": 0.8766778638245132,
+    "main_calibrated_test_log_loss": 0.8667826460876981
   },
   "features": [
     "form_5_diff",
@@ -51,39 +59,40 @@
     "goals_against_5_diff",
     "goal_diff_10_diff",
     "rest_days_diff",
+    "elo_diff",
     "is_team_a_home",
     "is_neutral"
   ],
   "main_model": {
     "test": {
       "base": {
-        "accuracy": 0.5487788422615032,
-        "brier": 0.5685546631089159,
-        "log_loss": 0.9593324465310529,
+        "accuracy": 0.6053164215355552,
+        "brier": 0.5079081272811741,
+        "log_loss": 0.8652926580262079,
         "n": 7411
       },
       "calibrated": {
-        "accuracy": 0.5508028606126029,
-        "brier": 0.5675099510788472,
-        "log_loss": 0.9583237877026517,
+        "accuracy": 0.6084199163405748,
+        "brier": 0.5063971594454889,
+        "log_loss": 0.8667826460876981,
         "n": 7411
       }
     },
     "test_calibration_error": {
-      "base": 0.019754351603677094,
-      "calibrated": 0.0162895103977708
+      "base": 0.022455566238615932,
+      "calibrated": 0.015603398688395857
     },
     "validation": {
       "base": {
-        "accuracy": 0.535285386587505,
-        "brier": 0.5819735537538344,
-        "log_loss": 0.979490099342955,
+        "accuracy": 0.5831871542301984,
+        "brier": 0.5307641887724316,
+        "log_loss": 0.9006870894310223,
         "n": 7411
       },
       "calibrated": {
-        "accuracy": 0.5355552557009851,
-        "brier": 0.5780979618626452,
-        "log_loss": 0.9714496609102791,
+        "accuracy": 0.5856159762515181,
+        "brier": 0.5263589304603661,
+        "log_loss": 0.8914182207879845,
         "n": 7411
       }
     }

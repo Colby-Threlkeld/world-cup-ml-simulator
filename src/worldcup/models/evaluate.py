@@ -443,8 +443,9 @@ def render_evaluation_markdown(
     lines.append("## Caveats")
     lines.append("")
     lines.append(
-        "- Scores reflect the current feature set only; stronger signals (self-computed "
-        "Elo, FIFA ranking) are planned and not yet included."
+        "- Scores reflect the current feature set: a self-computed **Elo** difference "
+        "plus rolling form and home/neutral flags. The FIFA world ranking is a further "
+        "signal that is not yet wired in."
     )
     lines.append(
         "- International football is high-variance; even a good model will look only "

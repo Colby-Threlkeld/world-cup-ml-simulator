@@ -14,11 +14,11 @@ in an interview.
 - ✅ **Slice 0** — scaffold + tooling. Data audited; V1 schema agreed (see below). `data/raw/` holds martj42 CSVs (gitignored).
 - ✅ **Slice 1** — ingestion: `load_raw_matches` + `clean_matches` → `data/interim/matches.parquet` (49,409 played rows; 68 unplayed 2026 fixtures split out). `scripts/build_matches.py` CLI. Team-name normalization + strong aggregating validation layer (`check_matches`, `LeakageError`, prob/ratings validators).
 - ✅ **Model dataset + features** — `build_model_dataset` (Team A vs Team B) and `build_feature_matrix` (leakage-safe rolling form: last-5/10 points/goals-for/against/goal-diff, days_since_last_match, matches_played_last_365_days, + 6 diff features). Builds in ~0.8s.
-- ✅ **Ratings + models + evaluation** — Elo + as-of FIFA/rating features (`rating_features`), baseline forecasters and a calibrated 3-class main model (`models/`), walk-forward evaluation with metrics + plots in `reports/`. Scripts: `train_baselines.py`, `train_model.py`, `generate_evaluation_report.py`.
+- ✅ **Ratings + models + evaluation** — Elo + as-of FIFA/rating features (`rating_features`), baseline forecasters and a calibrated 3-class main model (`models/`), walk-forward evaluation with metrics + plots in `reports/`. Scripts: `train_baselines.py`, `train_model.py`, `generate_evaluation_report.py`. **`build_features.py` now attaches the leakage-safe walk-forward Elo when no external snapshot is supplied (`attach_elo_features`), so `elo_diff` is in the main model** — test log loss 0.867 / acc 0.608, edging the Elo-only baseline (0.877).
 - ✅ **Slice 6 — Monte Carlo simulator** — `simulate_tournament(config, predict, n, seed)` + `scripts/run_simulation.py` (quick/full, CSV + JSON, seeded, memoized predict). Group→knockout building blocks in `simulation/`.
-- ⬜ **Next** — slice 7 reporting/Streamlit app; wire a real per-team `predict` (trained model or Elo strengths) once the official draw replaces the placeholder slots.
-- All work on branch `main`. Suite: **223 tests** green (`python -m pytest -q`).
-- Build order: 0 scaffold · 1 ingest · 2 Elo baseline+backtest · 3 features · 4 Poisson model · 5 calibration · 6 Monte Carlo sim · 7 reporting/app.
+- ⬜ **Next** — slice 7 reporting/Streamlit app; wire a real per-team `predict` (trained model or Elo strengths) once the official draw replaces the placeholder slots. The shipped sim is still a `uniform_predict_fn` run over placeholder slots (structure-only odds).
+- All work on branch `main`. Suite: **251 tests** green (`python -m pytest -q`).
+- Build order: 0 scaffold · 1 ingest · 2 Elo baseline+backtest · 3 features · 4 match model (multinomial logistic — the Poisson-grid model was never built) · 5 calibration · 6 Monte Carlo sim · 7 reporting/app.
 
 ## Operating rules (non-negotiable)
 1. Don't dump giant untested code. Work **module by module**, smallest useful slice.
@@ -57,7 +57,7 @@ added under `.claude/agents/`, prefer delegating to the matching one.)
 - Backtest predictions: `predicted_at ≤ kickoff`.
 
 ## Architecture & key decisions
-- **Match model:** Poisson goals (λ_home, λ_away → scoreline grid → W/D/L + knockout resolution).
+- **Match model:** a calibrated **multinomial-logistic 3-class** model (`team_a_win`/`draw`/`team_b_win`) over leakage-safe diff features (Elo + rolling form + home/neutral). *(The originally-planned Poisson λ-grid model was never built; the sim samples a cosmetic Poisson scoreline only to populate goal-difference tiebreakers, not to model outcomes.)*
 - **Baseline:** temporal Elo (slice 2). Every later model must beat its Brier / log loss.
 - **Data:** martj42 `international_results` (`results.csv` spine + `shootouts`/`goalscorers`). **Self-computed Elo** is the primary strength signal. FIFA ranking = V1.1 enhancement. Betting odds = V2 **benchmark only, never a feature**.
 

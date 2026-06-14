@@ -322,8 +322,10 @@ def page_methodology() -> None:
         "- **Model:** a calibrated multinomial-logistic 3-class outcome model, trained "
         "on a strictly temporal split (never random K-fold).\n"
         "- **Simulation:** Monte Carlo of the 48-team format — group round-robins with "
-        "FIFA tiebreakers, then a single-elimination bracket with draws resolved by "
-        "redistributing draw probability.\n"
+        "FIFA's *primary* tiebreakers (points, goal difference, goals scored; "
+        "head-to-head and fair-play are deferred to a seeded random draw), then a "
+        "single-elimination bracket with draws resolved by redistributing draw "
+        "probability.\n"
         "- **Honesty:** no fabricated numbers; the app loads saved outputs only."
     )
 
