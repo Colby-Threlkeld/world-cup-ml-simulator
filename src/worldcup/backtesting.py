@@ -148,10 +148,56 @@ def add_elo_features(
     Raises:
         BacktestError: If required columns are missing.
     """
+    ordered, a_pre, b_pre, _ = _walk_forward_elo(
+        model_df, base=base, k_factor=k_factor, home_advantage=home_advantage
+    )
+    out = ordered.copy()
+    out["team_a_elo"] = a_pre
+    out["team_b_elo"] = b_pre
+    out["elo_diff"] = a_pre - b_pre
+    return out.sort_index()
+
+
+def current_elo_ratings(
+    model_df: pd.DataFrame,
+    *,
+    base: float = ELO_BASE,
+    k_factor: float = ELO_K,
+    home_advantage: float = ELO_HOME_ADVANTAGE,
+) -> dict[str, float]:
+    """Return each team's Elo rating *after* the most recent match in ``model_df``.
+
+    The same leakage-safe walk-forward as :func:`add_elo_features`, but returning
+    the final rating per team — a cheap, current strength table for the app and the
+    simulation predictor (this is rating computation, not model training).
+
+    Args:
+        model_df: A model dataset (see :func:`add_elo_features` for required cols).
+        base: Starting rating for an unseen team.
+        k_factor: Elo update step.
+        home_advantage: Rating points added to a true home side.
+
+    Returns:
+        Mapping of team -> current Elo rating.
+    """
+    _, _, _, ratings = _walk_forward_elo(
+        model_df, base=base, k_factor=k_factor, home_advantage=home_advantage
+    )
+    return ratings
+
+
+def _walk_forward_elo(
+    model_df: pd.DataFrame,
+    *,
+    base: float,
+    k_factor: float,
+    home_advantage: float,
+) -> tuple[pd.DataFrame, np.ndarray, np.ndarray, dict[str, float]]:
+    """Run the chronological Elo update; return (ordered df, a_pre, b_pre, ratings)."""
     required = {"date", "team_a", "team_b", "team_a_score", "team_b_score"}
     missing = required - set(model_df.columns)
     if missing:
-        raise BacktestError(f"add_elo_features missing columns: {sorted(missing)}")
+        raise BacktestError(f"Elo walk-forward missing columns: {sorted(missing)}")
 
     sort_cols = ["date", "match_id"] if "match_id" in model_df.columns else ["date"]
     ordered = model_df.sort_values(sort_cols, kind="stable")
@@ -177,11 +223,7 @@ def add_elo_features(
         ratings[row.team_a] = update_rating(ra, expected_a, actual_a, k_factor)
         ratings[row.team_b] = update_rating(rb, 1.0 - expected_a, 1.0 - actual_a, k_factor)
 
-    out = ordered.copy()
-    out["team_a_elo"] = a_pre
-    out["team_b_elo"] = b_pre
-    out["elo_diff"] = a_pre - b_pre
-    return out.sort_index()
+    return ordered, a_pre, b_pre, ratings
 
 
 def entering_strengths(test_rows: pd.DataFrame) -> dict[str, float]:

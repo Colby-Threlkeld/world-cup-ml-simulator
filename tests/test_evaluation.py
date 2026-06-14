@@ -27,6 +27,7 @@ from worldcup.models.evaluate import (  # noqa: E402
 from worldcup.visualization.plots import (  # noqa: E402
     plot_calibration_curve,
     plot_confusion_matrix,
+    plot_title_probabilities,
     save_figure,
 )
 
@@ -165,6 +166,18 @@ def test_plots_return_figures_and_save(tmp_path: Path) -> None:
     cm_path = save_figure(cm_fig, tmp_path / "figures" / "cm.png")
     assert cal_path.exists() and cal_path.stat().st_size > 0
     assert cm_path.exists() and cm_path.stat().st_size > 0
+
+
+def test_plot_title_probabilities(tmp_path: Path) -> None:
+    probs = pd.DataFrame(
+        {"team": [f"T{i}" for i in range(20)], "win_world_cup_probability": np.linspace(0.2, 0.01, 20)}
+    )
+    fig = plot_title_probabilities(probs, top_n=10)
+    assert isinstance(fig, Figure)
+    out = save_figure(fig, tmp_path / "title.png")
+    assert out.exists() and out.stat().st_size > 0
+    with pytest.raises(KeyError):
+        plot_title_probabilities(pd.DataFrame({"team": ["A"]}))  # missing prob column
 
 
 # --- CLI end-to-end ---------------------------------------------------------

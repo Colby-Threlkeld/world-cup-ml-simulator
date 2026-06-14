@@ -115,17 +115,42 @@ def save_figure(fig: Figure, path: Path | str, *, dpi: int = 110) -> Path:
     return out_path
 
 
-def plot_title_probabilities(probs: pd.DataFrame) -> Figure:
-    """Render a horizontal bar chart of title probabilities by team.
-
-    TODO(slice 7): implement once :func:`worldcup.simulation.tournament.
-    simulate_tournament` produces real output. Sort teams by probability and
-    annotate with Monte Carlo confidence intervals.
+def plot_title_probabilities(
+    probs: pd.DataFrame,
+    *,
+    team_column: str = "team",
+    prob_column: str = "win_world_cup_probability",
+    top_n: int = 15,
+) -> Figure:
+    """Render a horizontal bar chart of the top-N title probabilities by team.
 
     Args:
-        probs: One row per team with a title-probability column.
+        probs: One row per team with ``team_column`` and ``prob_column``.
+        team_column: Column holding team names.
+        prob_column: Column holding the title probability in ``[0, 1]``.
+        top_n: How many of the strongest teams to show.
 
     Returns:
         The Matplotlib figure.
+
+    Raises:
+        KeyError: If a required column is missing.
     """
-    raise NotImplementedError("plot_title_probabilities is implemented in slice 7.")
+    missing = [c for c in (team_column, prob_column) if c not in probs.columns]
+    if missing:
+        raise KeyError(f"probs missing column(s): {missing}")
+
+    # Largest at the top: nlargest then reverse for a top-down barh.
+    top = probs.nlargest(top_n, prob_column).iloc[::-1]
+    fig = Figure(figsize=(7, max(3.0, 0.42 * len(top))))
+    FigureCanvasAgg(fig)
+    ax = fig.subplots()
+
+    ax.barh(top[team_column].astype(str), top[prob_column], color="#1f77b4")
+    ax.set_xlabel("Win probability")
+    ax.set_title(f"Top {len(top)} title contenders")
+    ax.set_xlim(0, max(0.01, float(top[prob_column].max()) * 1.15))
+    for y, value in enumerate(top[prob_column]):
+        ax.text(value, y, f" {value:.1%}", va="center", fontsize=9)
+    fig.tight_layout()
+    return fig

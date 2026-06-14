@@ -1,43 +1,113 @@
 # World Cup ML Simulator
 
-Predict 2026 FIFA World Cup match-outcome probabilities from historical
-international football data, then simulate the full 48-team tournament with Monte
-Carlo to estimate each nation's title odds.
+Forecast international football match outcomes from 150+ years of results, then
+simulate the **2026 FIFA World Cup** (48 teams, 12 groups) with Monte Carlo to
+estimate each nation's title odds — all judged against honest baselines and
+**backtested** on the 2014, 2018, and 2022 tournaments.
 
-> **Status:** under active construction, built one vertical slice at a time.
-> No predictions are published until real data has been processed end-to-end.
-> The current build is **slice 0** (scaffold + tooling).
+An interactive **Streamlit dashboard** ties it together: explore team strengths,
+predict any match-up, browse simulated title odds, and read the backtest.
 
-## Why this project
+## Highlights
 
-International football forecasting is a clean showcase for a real ML workflow:
-leakage-safe feature engineering, probability calibration, proper scoring rules,
-and Monte Carlo simulation — judged against an honest baseline rather than vibes.
+- **Leakage-safe by construction** — every feature is computed *as of kickoff*
+  from prior matches only; all evaluation splits are temporal, never random.
+- **Calibrated probabilities, not vibes** — a multinomial-logistic match model
+  with isotonic/Platt calibration and reliability diagnostics.
+- **Honest backtest** — trained only on pre-tournament data, the system ranked
+  every eventual champion (Germany '14, France '18, Argentina '22) in its
+  pre-tournament **top 5**, with mean log loss **0.97** vs **1.10** for an
+  uninformed model.
+- **Reproducible** — everything is seeded; 1,000 tournament simulations run in
+  ~3s on 2 CPU cores. No GPU, tiny data.
+- **No fabricated numbers** — if an output hasn't been generated, the app and
+  reports say so and show the command to produce it.
 
-## Approach
+## Dashboard
 
-- **Match model:** a Poisson goals model (expected goals per side) so simulated
-  scorelines resolve knockout extra-time and penalties naturally.
-- **Baseline first:** an Elo model is the slice-2 baseline; every later model
-  must beat its Brier / log-loss score on a *temporal* hold-out.
-- **No leakage, enforced structurally:** every feature is computed as-of kickoff
-  from prior matches only, and all evaluation splits are by time — never random
-  K-fold.
-- **Probabilities, not certainties:** calibrated outputs with reliability
-  diagnostics.
+`make app` launches a six-page dashboard:
 
-## Build order (vertical slices)
+| Page | What it shows |
+|------|----------------|
+| **Overview** | Project summary, which artifacts are ready, top title contenders |
+| **Team Explorer** | Current self-computed Elo strength + world rank per team |
+| **Match Predictor** | Win/draw/loss probabilities for any Team A vs Team B (neutral toggle) |
+| **Tournament Simulator** | Monte-Carlo title and advancement probabilities by team |
+| **Backtesting** | Match metrics + champion-rank for 2014/2018/2022 |
+| **Methodology** | Features, model, calibration curve, no-leakage doctrine |
 
-| # | Slice | Status |
-|---|-------|--------|
-| 0 | Scaffold + tooling | ✅ done |
-| 1 | Data ingestion (international results + FIFA rankings) | ⬜ next |
-| 2 | Elo baseline + temporal backtest | ⬜ |
-| 3 | Leakage-safe feature engineering | ⬜ |
-| 4 | Poisson goals match model | ⬜ |
-| 5 | Probability calibration + evaluation | ⬜ |
-| 6 | 2026 Monte Carlo tournament simulation | ⬜ |
-| 7 | Reporting + Streamlit app | ⬜ |
+### Screenshots
+
+> _Placeholder — add images under `docs/screenshots/` and link them here._
+
+| Overview | Match Predictor | Tournament Simulator |
+|----------|-----------------|----------------------|
+| _`docs/screenshots/overview.png`_ | _`docs/screenshots/match_predictor.png`_ | _`docs/screenshots/simulator.png`_ |
+
+## Quickstart
+
+Requires Python 3.11+ (pinned dev interpreter 3.12) and
+[`uv`](https://docs.astral.sh/uv/).
+
+```bash
+make install   # create .venv and install the package + dev tools
+make test      # run the test suite (240+ tests)
+make app       # launch the Streamlit dashboard
+```
+
+Without `uv` (e.g. an existing conda/system Python ≥ 3.11):
+
+```bash
+python -m pip install -e ".[dev]"
+python -m pytest                              # pythonpath=src is preconfigured
+streamlit run app/streamlit_app.py            # launch the app
+```
+
+## Generate the data and outputs
+
+The dashboard is **read-only**: it loads saved artifacts and never retrains a
+model. Produce those artifacts with the pipeline scripts (datasets live in the
+gitignored `data/`):
+
+```bash
+python scripts/build_matches.py              # clean raw results -> data/interim/matches.parquet
+python scripts/build_features.py             # leakage-safe feature matrix
+python scripts/train_model.py                # calibrated match model + metrics
+python scripts/generate_evaluation_report.py # evaluation report + figures
+python scripts/run_simulation.py --quick     # Monte-Carlo title odds (1,000 sims, ~3s)
+python scripts/run_backtest.py               # backtest 2014/2018/2022
+```
+
+Each app page that lacks its artifact shows the exact command above.
+
+## Run the app
+
+**Locally**
+
+```bash
+make app
+# or:
+streamlit run app/streamlit_app.py
+# then open http://localhost:8501
+```
+
+**On a headless Azure VM (safely)**
+
+Don't expose Streamlit to the public internet. Bind it to localhost on the VM and
+reach it through an SSH tunnel:
+
+```bash
+# On the VM (a cheap Burstable B2s, Ubuntu 24.04 is plenty):
+streamlit run app/streamlit_app.py \
+  --server.headless true --server.address 127.0.0.1 --server.port 8501
+
+# On your laptop, forward the port over SSH, then open http://localhost:8501:
+ssh -N -L 8501:127.0.0.1:8501 <user>@<vm-ip>
+```
+
+VM hygiene: enable **auto-shutdown**, **deallocate** when idle, and keep the NSG
+closed (no inbound 8501) — the SSH tunnel is the only path in. The app is
+CPU-only and needs no GPU.
 
 ## Project structure
 
@@ -45,86 +115,26 @@ and Monte Carlo simulation — judged against an honest baseline rather than vib
 src/worldcup/
   config.py            # paths, seeds, YAML config loaders
   data/                # load, clean, validate, team-name canonicalization
-  features/            # leakage-safe as-of-date features (rolling form, etc.)
-  models/              # Elo baseline, Poisson model, train/eval/calibrate
+  features/            # leakage-safe as-of-date features (rolling form, Elo diff)
+  models/              # baselines, calibrated match model, train/eval/calibrate
   simulation/          # group stage, tiebreakers, knockout, Monte Carlo
+  backtesting.py       # walk-forward Elo + past-tournament backtests
   visualization/       # plots for reports and the app
 configs/               # tournament format, team-name map, model hyperparameters
-notebooks/             # throwaway exploration only (never imported)
-app/streamlit_app.py   # front-end (no fabricated numbers)
+scripts/               # CLI entry points (build, train, simulate, backtest)
+app/streamlit_app.py   # the dashboard (loads saved outputs; no fabricated numbers)
+reports/               # generated metrics JSON, figures, and Markdown reports
 tests/                 # pytest suite
 data/{raw,interim,processed}/   # gitignored; datasets are downloaded locally
 ```
 
-## Quickstart (local)
-
-Requires Python 3.11+ and [`uv`](https://docs.astral.sh/uv/). The pinned dev
-interpreter is 3.12 (see `.python-version`).
-
-```bash
-make install   # create .venv and install the package + dev tools
-make test      # run the test suite
-make lint      # ruff + black --check
-make format    # auto-fix + format
-make app       # launch the Streamlit app
-```
-
-### Windows / without `uv`
-
-With `uv` installed, run the underlying commands directly:
-
-```powershell
-uv venv
-uv pip install -e ".[dev]"
-uv run pytest
-```
-
-Without `uv` (e.g. an existing conda/system Python ≥ 3.11) — this installs the
-same dev tools from the `dev` extra:
-
-```powershell
-python -m pip install -e ".[dev]"
-python -m pytest            # then: ruff check src tests  ·  mypy src
-```
-
-For a quick test run with nothing installed, `python -m pytest` works on its own
-(`pythonpath = src` is set in `pyproject.toml`).
-
-## Azure VM (optional, deferred)
-
-The early slices are cloud-agnostic and run on a laptop. A cheap Azure
-**Burstable B2s** Ubuntu 24.04 VM is the planned remote option once compute
-justifies it (large Monte Carlo runs, or hosting the app). Rules of thumb:
-**deallocate** when idle, set **auto-shutdown**, use a **Standard SSD**, and
-**tunnel** Streamlit over SSH instead of exposing it publicly.
-
 ## Data
 
-Datasets are **not** committed (`data/` is gitignored except `.gitkeep`). The V1
-spine is martj42's `international_results`, pulled from GitHub raw into
-`data/raw/` (no credentials needed):
-
-- `results.csv` — international match results, 1872–present (the spine)
-- `shootouts.csv`, `goalscorers.csv` — companions (V2 features)
-
-The FIFA men's ranking (a **V1.1** enhancement) is the only source needing Kaggle
-credentials — see `.env.example`. It is not required for V1.
-
-### Audit the raw data
-
-Before building anything on a dataset, profile it. `scripts/audit_data.py` reads
-every CSV in `data/raw/` and prints row counts, columns and dtypes, missing-value
-counts, duplicate rows, date ranges, the top teams, and sample rows — so you
-understand the real data instead of assuming its shape.
-
-```bash
-python scripts/audit_data.py            # audits every CSV in data/raw/
-python scripts/audit_data.py --dir x/   # audit CSVs in another directory
-```
-
-It only needs `pandas` and is intentionally decoupled from the `worldcup`
-package, so it runs before any install. It reads only — it never writes or
-cleans data.
+Datasets are **not** committed (`data/` is gitignored). The spine is martj42's
+`international_results` (match results, 1872–present), pulled into `data/raw/`.
+`scripts/audit_data.py` profiles every CSV before anything is built on it. The
+FIFA men's ranking is a deferred V1.1 enhancement (needs Kaggle credentials; see
+`.env.example`) and is not required.
 
 ## License
 

@@ -17,6 +17,7 @@ from worldcup.backtesting import (  # noqa: E402
     add_elo_features,
     backtest_report,
     backtest_tournament,
+    current_elo_ratings,
     entering_strengths,
     render_backtest_markdown,
     run_backtests,
@@ -100,6 +101,14 @@ def test_add_elo_features_is_leakage_safe_and_orders_strength() -> None:
 def test_add_elo_features_requires_columns() -> None:
     with pytest.raises(BacktestError):
         add_elo_features(pd.DataFrame({"date": [pd.Timestamp("2020-01-01")]}))
+
+
+def test_current_elo_ratings_orders_by_strength() -> None:
+    ratings = current_elo_ratings(_features())
+    assert set(ratings) == {"S0", "S1", "S2", "S3"}
+    assert ratings["S0"] > ratings["S1"] > ratings["S2"] > ratings["S3"]
+    # The strong team finished above the base rating, the weak team below.
+    assert ratings["S0"] > 1500.0 > ratings["S3"]
 
 
 # --- winner-rank helper -----------------------------------------------------
