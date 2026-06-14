@@ -25,6 +25,15 @@ RESULT_HOME = "H"
 RESULT_DRAW = "D"
 RESULT_AWAY = "A"
 
+# Team A vs Team B modeling target vocabulary (consumed by
+# worldcup.features.build_features.build_model_dataset). Kept here, next to the
+# H/D/A result semantics, so all score->label meaning lives in one module.
+TEAM_A_RESULTS: tuple[str, str, str] = ("win", "draw", "loss")
+TARGET_TEAM_A_WIN = "team_a_win"
+TARGET_DRAW = "draw"
+TARGET_TEAM_B_WIN = "team_b_win"
+TARGET_CLASSES: tuple[str, str, str] = (TARGET_TEAM_A_WIN, TARGET_DRAW, TARGET_TEAM_B_WIN)
+
 DEFAULT_MATCHES_PATH = INTERIM_DIR / "matches.parquet"
 
 # Final column order of the cleaned matches table.
@@ -66,6 +75,27 @@ def add_result_label(df: pd.DataFrame) -> pd.DataFrame:
         for h, a in zip(out["home_score"], out["away_score"], strict=True)
     ]
     return out
+
+
+def team_a_result_label(team_a_score: int, team_b_score: int) -> str:
+    """Return team A's result from the scores: "win", "draw", or "loss"."""
+    if team_a_score > team_b_score:
+        return "win"
+    if team_a_score < team_b_score:
+        return "loss"
+    return "draw"
+
+
+def team_a_target_class(team_a_score: int, team_b_score: int) -> str:
+    """Return the 3-class target from team A's perspective.
+
+    One of ``team_a_win`` / ``draw`` / ``team_b_win``.
+    """
+    if team_a_score > team_b_score:
+        return TARGET_TEAM_A_WIN
+    if team_a_score < team_b_score:
+        return TARGET_TEAM_B_WIN
+    return TARGET_DRAW
 
 
 def clean_matches(df: pd.DataFrame) -> pd.DataFrame:
