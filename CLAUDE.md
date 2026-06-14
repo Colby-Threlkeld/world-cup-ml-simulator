@@ -11,9 +11,10 @@ against an honest baseline. Quality bar: good enough to show on GitHub and defen
 in an interview.
 
 ## Current status
-- ✅ **Slice 0** — scaffold + tooling. 18 tests green. Uncommitted on branch `main`.
-- ✅ Data audited; V1 schema agreed (see below). `data/raw/` holds martj42 CSVs (gitignored).
-- ⬜ **Slice 1 (next)** — `data/clean_data.py`: raw `results.csv` → `matches` table + validation, with the played/unplayed split.
+- ✅ **Slice 0** — scaffold + tooling. Data audited; V1 schema agreed (see below). `data/raw/` holds martj42 CSVs (gitignored).
+- ✅ **Slice 1** — ingestion: `load_raw_matches` + `clean_matches` → `data/interim/matches.parquet` (49,409 played rows; 68 unplayed 2026 fixtures split out). `scripts/build_matches.py` CLI. Team-name normalization with alias map + unknown detection.
+- ⬜ **Slice 2 (next)** — temporal Elo baseline + walk-forward backtest (Brier / log loss), reading `matches.parquet`.
+- All work uncommitted on branch `main`. Suite: **66 tests** green (`python -m pytest -q`).
 - Build order: 0 scaffold · 1 ingest · 2 Elo baseline+backtest · 3 features · 4 Poisson model · 5 calibration · 6 Monte Carlo sim · 7 reporting/app.
 
 ## Operating rules (non-negotiable)
